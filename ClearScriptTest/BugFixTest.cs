@@ -638,6 +638,18 @@ namespace Microsoft.ClearScript.Test
         }
 
         [TestMethod, TestCategory("BugFix")]
+        public void BugFix_MetaScriptItem_GetDynamicMemberNames()
+        {
+
+            var objWithcolor = engine.Evaluate("x={color:'red'};");
+            var dynamicProvider = (IDynamicMetaObjectProvider)objWithcolor;
+            var metaObject = dynamicProvider.GetMetaObject(Expression.Constant(dynamicProvider));
+            var propNames = metaObject.GetDynamicMemberNames();
+            Assert.IsTrue(propNames.Any(name => name == "color"));
+
+        }
+
+        [TestMethod, TestCategory("BugFix")]
         public void BugFix_IDispatchExArgLeak_InvokeMethod_JScript()
         {
             // ReSharper disable RedundantAssignment

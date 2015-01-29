@@ -431,6 +431,11 @@ namespace Microsoft.ClearScript
                 return scriptItem.PostProcessBindResult(metaDynamic.BindBinaryOperation(binder, arg));
             }
 
+            public override IEnumerable<string> GetDynamicMemberNames()
+            {
+                return scriptItem.GetDynamicMemberNames();
+            }
+
             public override DynamicMetaObject BindConvert(ConvertBinder binder)
             {
                 return scriptItem.PostProcessBindResult(metaDynamic.BindConvert(binder));
