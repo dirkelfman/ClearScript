@@ -61,6 +61,7 @@
 
 #include "ClearScriptV8Managed.h"
 
+
 namespace Microsoft {
 namespace ClearScript {
 namespace V8 {
@@ -260,6 +261,16 @@ namespace V8 {
     {
         GetContext()->CollectGarbage(exhaustive);
     }
+
+	void V8ContextProxyImpl::WriteHeapSnapshot(String^ filename)
+	{
+		const char* unManagedFilename = (const char*)System::Runtime::InteropServices::Marshal::StringToHGlobalAnsi(filename).ToPointer();
+		
+		//CString fileName(filename);
+		
+		GetContext()->WriteHeapSnapshot(unManagedFilename);
+		
+	}
 
     //-------------------------------------------------------------------------
 

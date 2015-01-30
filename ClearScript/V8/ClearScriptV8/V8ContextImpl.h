@@ -98,7 +98,7 @@ public:
     void Interrupt();
     void GetIsolateHeapInfo(V8IsolateHeapInfo& heapInfo);
     void CollectGarbage(bool exhaustive);
-
+	void WriteHeapSnapshot(const char* filename);
     V8Value GetV8ObjectProperty(void* pvObject, const StdString& name);
     void SetV8ObjectProperty(void* pvObject, const StdString& name, const V8Value& value);
     bool DeleteV8ObjectProperty(void* pvObject, const StdString& name);

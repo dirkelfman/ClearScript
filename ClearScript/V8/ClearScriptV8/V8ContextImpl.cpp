@@ -399,6 +399,15 @@ void V8ContextImpl::CollectGarbage(bool exhaustive)
     m_spIsolateImpl->CollectGarbage(exhaustive);
 }
 
+void V8ContextImpl::WriteHeapSnapshot(const char* filename)
+{
+	m_spIsolateImpl->WriteHeapSnapshot(filename);
+}
+
+
+
+
+
 //-----------------------------------------------------------------------------
 
 V8Value V8ContextImpl::GetV8ObjectProperty(void* pvObject, const StdString& name)

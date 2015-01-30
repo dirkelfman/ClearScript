@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // 
 // Microsoft Public License (MS-PL)
@@ -59,41 +59,35 @@
 //       fitness for a particular purpose and non-infringement.
 //       
 
-using System;
+#pragma once
 
-namespace Microsoft.ClearScript.V8
+//-----------------------------------------------------------------------------
+// V8ObjectHolderImpl
+//-----------------------------------------------------------------------------
+
+#include "v8-profiler.h"
+
+
+
+class OutputStreamAdapter : public v8::OutputStream 
 {
-    internal abstract class V8ContextProxy : V8Proxy
-    {
-        public static V8ContextProxy Create(V8IsolateProxy isolateProxy, string name, bool enableDebugging, bool disableGlobalMembers, int debugPort)
-        {
-            return CreateImpl<V8ContextProxy>(isolateProxy, name, enableDebugging, disableGlobalMembers, debugPort);
-        }
+public:
+	OutputStreamAdapter(char*  filename);
 
-        public abstract UIntPtr MaxRuntimeHeapSize { get; set; }
+	void EndOfStream();
 
-        public abstract TimeSpan RuntimeHeapSizeSampleInterval { get; set; }
+	int GetChunkSize();
 
-        public abstract UIntPtr MaxRuntimeStackUsage { get; set; }
+	WriteResult WriteAsciiChunk(char* data, int size);
 
-        public abstract void InvokeWithLock(Action action);
+	WriteResult WriteHeapStatsChunk(v8::HeapStatsUpdate* data, int count);
 
-        public abstract object GetRootItem();
+private:
 
-        public abstract void AddGlobalItem(string name, object item, bool globalMembers);
+	char*  m_filename;
+};
 
-        public abstract object Execute(string documentName, string code, bool evaluate, bool discard);
 
-        public abstract V8Script Compile(string documentName, string code);
 
-        public abstract object Execute(V8Script script, bool evaluate);
 
-        public abstract void Interrupt();
 
-        public abstract V8RuntimeHeapInfo GetRuntimeHeapInfo();
-
-        public abstract void CollectGarbage(bool exhaustive);
-
-        public abstract void WriteHeapSnapshot(string fileName);
-    }
-}

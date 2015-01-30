@@ -147,6 +147,7 @@ namespace V8 {
         }
     }
 
+	
     //-------------------------------------------------------------------------
 
     V8RuntimeHeapInfo^ V8IsolateProxyImpl::GetHeapInfo()
@@ -167,8 +168,17 @@ namespace V8 {
 
     void V8IsolateProxyImpl::CollectGarbage(bool exhaustive)
     {
-        GetIsolate()->CollectGarbage(exhaustive);
+		GetIsolate()->CollectGarbage(exhaustive);
     }
+
+	//-------------------------------------------------------------------------
+
+
+	void V8IsolateProxyImpl::WriteHeapSnapshot(String^ filename)
+	{
+		const char* unManagedFilename = (const char*)System::Runtime::InteropServices::Marshal::StringToHGlobalAnsi(filename).ToPointer();
+		GetIsolate()->WriteHeapSnapshot(unManagedFilename);
+	}
 
     //-------------------------------------------------------------------------
 

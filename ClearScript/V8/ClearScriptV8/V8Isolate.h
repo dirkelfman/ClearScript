@@ -82,6 +82,7 @@ public:
     virtual V8ScriptHolder* Compile(const StdString& documentName, const StdString& code) = 0;
     virtual void GetHeapInfo(V8IsolateHeapInfo& heapInfo) = 0;
     virtual void CollectGarbage(bool exhaustive) = 0;
+	virtual void WriteHeapSnapshot(const char* filename) = 0;
 
     virtual ~V8Isolate() {}
 };

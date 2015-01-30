@@ -96,7 +96,7 @@ namespace V8 {
         virtual V8Script^ Compile(String^ gcDocumentName, String^ gcCode) override;
         virtual V8RuntimeHeapInfo^ GetHeapInfo() override;
         virtual void CollectGarbage(bool exhaustive) override;
-
+		virtual void WriteHeapSnapshot(String^ filename) override;
         SharedPtr<V8Isolate> GetIsolate();
 
         ~V8IsolateProxyImpl();

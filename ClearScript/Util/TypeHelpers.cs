@@ -323,6 +323,7 @@ namespace Microsoft.ClearScript.Util
         public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, BindingFlags bindFlags)
         {
             var properties = type.GetProperties(bindFlags).AsEnumerable();
+
             if (type.IsInterface)
             {
                 properties = properties.Concat(type.GetInterfaces().SelectMany(interfaceType => interfaceType.GetScriptableProperties(bindFlags)));
@@ -331,14 +332,25 @@ namespace Microsoft.ClearScript.Util
             return properties.Where(property => property.IsScriptable());
         }
 
-        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, string name, BindingFlags bindFlags)
+        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, string name, BindingFlags bindFlags, bool disableCaseInsensitivity)
         {
-            return type.GetScriptableProperties(bindFlags).Where(property => property.GetScriptName() == name);
+            var props = type.GetScriptableProperties(bindFlags).ToList();
+
+            var list = props.Where(property => property.GetScriptName() == name).ToArray();
+            if (!disableCaseInsensitivity && list.Length  == 0)
+            {
+                return props.Where(property => string.Equals(property.GetScriptName(), name, StringComparison.InvariantCultureIgnoreCase));
+            }
+
+      
+            
+         
+            return list;
         }
 
-        public static PropertyInfo GetScriptableProperty(this Type type, string name, BindingFlags bindFlags, object[] bindArgs)
+        public static PropertyInfo GetScriptableProperty(this Type type, string name, BindingFlags bindFlags, object[] bindArgs,  bool disableCaseInsensitivity)
         {
-            var properties = type.GetScriptableProperties(name, bindFlags).ToArray();
+            var properties = type.GetScriptableProperties(name, bindFlags, disableCaseInsensitivity).ToArray();
 
             if (properties.Length < 1)
             {
