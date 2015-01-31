@@ -82,6 +82,7 @@ namespace Microsoft.ClearScript.Test
         public void TestInitialize()
         {
             engine = new JScriptEngine(WindowsScriptEngineFlags.EnableDebugging);
+            engine.DisableCaseInsensitivePropertyLookups = true;
             engine.AddHostObject("host", host = new ExtendedHostFunctions());
         }
 
