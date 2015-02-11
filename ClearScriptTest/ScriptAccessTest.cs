@@ -98,6 +98,7 @@ namespace Microsoft.ClearScript.Test
         public void TestInitialize()
         {
             engine = new V8ScriptEngine(V8ScriptEngineFlags.EnableDebugging);
+            engine.EnableCaseInsensitivePropertyLookups = true;
             engine.AddHostObject("testObject", testInterface = testObject = new TestObject());
             engine.AddHostObject("testInterface", HostItem.Wrap(engine, testObject, typeof(ITestInterface)));
             engine.AddHostType("Guid", typeof(Guid));

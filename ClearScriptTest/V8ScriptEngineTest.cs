@@ -68,6 +68,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Policy;
 using System.Threading;
 using System.Windows.Threading;
 using Microsoft.CSharp.RuntimeBinder;
@@ -92,7 +93,7 @@ namespace Microsoft.ClearScript.Test
         [TestInitialize]
         public void TestInitialize()
         {
-            engine = new V8ScriptEngine(V8ScriptEngineFlags.EnableDebugging);
+            engine = new V8ScriptEngine(V8ScriptEngineFlags.EnableDebugging, 5858);
         }
 
         [TestCleanup]
@@ -161,6 +162,37 @@ namespace Microsoft.ClearScript.Test
             engine.AddHostObject("foo", HostItemFlags.GlobalMembers, new { first = fooFirst });
             Assert.AreEqual(fooFirst, engine.Evaluate("first"));
             Assert.AreEqual(barSecond, engine.Evaluate("second"));
+        }
+
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_CanWriteHeapSnapshot()
+        {
+            const int fooFirst = 123;
+            const int fooSecond = 456;
+            const int barSecond = 789;
+            engine.AddHostObject("bar", HostItemFlags.GlobalMembers, new { second = barSecond });
+            engine.AddHostObject("foo", HostItemFlags.GlobalMembers, new { second = fooSecond });
+            engine.AddHostObject("foo", HostItemFlags.GlobalMembers, new { first = fooFirst });
+        
+            
+            Assert.AreEqual(fooFirst, engine.Evaluate("first"));
+            Assert.AreEqual(barSecond, engine.Evaluate("second"));
+            
+
+            var tempFile = System.IO.Path.GetTempFileName();
+            engine.WriteHeapSnapshot(tempFile);
+            var tempFileInfo =new System.IO.FileInfo(tempFile);
+            
+            Assert.IsTrue( tempFileInfo.Length >100 );
+        }
+
+       
+
+        class TestObj1
+        {
+            public string AProperty { get; set; }
+            public string BProperty { get; set; }
         }
 
         [TestMethod, TestCategory("V8ScriptEngine")]

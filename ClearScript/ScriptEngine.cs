@@ -145,6 +145,12 @@ namespace Microsoft.ClearScript
         /// </remarks>
         public bool FormatCode { get; set; }
 
+
+        /// <summary>
+        /// gets/sets the default property lookup behavior
+        /// </summary>
+        public bool EnableCaseInsensitivePropertyLookups { get; set; }
+
         /// <summary>
         /// Controls whether script code is permitted to use reflection.
         /// </summary>

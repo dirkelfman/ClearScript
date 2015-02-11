@@ -302,6 +302,7 @@ public:
     V8ScriptHolder* Compile(const StdString& documentName, const StdString& code);
     void GetHeapInfo(V8IsolateHeapInfo& heapInfo);
     void CollectGarbage(bool exhaustive);
+	void WriteHeapSnapshot(const char* filename);
 
     void* AddRefV8Object(void* pvObject);
     void ReleaseV8Object(void* pvObject);

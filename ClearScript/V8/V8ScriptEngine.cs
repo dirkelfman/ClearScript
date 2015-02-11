@@ -427,6 +427,9 @@ namespace Microsoft.ClearScript.V8
             return Compile(null, code);
         }
 
+
+       
+
         /// <summary>
         /// Creates a compiled script with an associated document name.
         /// </summary>
@@ -638,6 +641,17 @@ namespace Microsoft.ClearScript.V8
         {
             VerifyNotDisposed();
             proxy.CollectGarbage(exhaustive);
+        }
+
+        /// <summary>
+        /// Performs a heap snapshot by the given name
+        /// </summary>
+        /// <param name="fileName">the name of the snapshot</param>
+
+        public void WriteHeapSnapshot(string fileName)
+        {
+            VerifyNotDisposed();
+            proxy.WriteHeapSnapshot(fileName);
         }
 
         #endregion

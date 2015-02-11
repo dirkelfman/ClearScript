@@ -61,6 +61,8 @@
 
 #include "ClearScriptV8Native.h"
 
+
+
 //-----------------------------------------------------------------------------
 // V8Platform
 //-----------------------------------------------------------------------------
@@ -422,8 +424,9 @@ void V8IsolateImpl::GetHeapInfo(V8IsolateHeapInfo& heapInfo)
 
 void V8IsolateImpl::CollectGarbage(bool exhaustive)
 {
-    BEGIN_ISOLATE_SCOPE
+	BEGIN_ISOLATE_SCOPE
 
+	
     if (exhaustive)
     {
         LowMemoryNotification();
@@ -435,6 +438,65 @@ void V8IsolateImpl::CollectGarbage(bool exhaustive)
 
     END_ISOLATE_SCOPE
 }
+
+class FileOutputStream : public v8::OutputStream {
+public:
+	FileOutputStream(FILE* stream) : stream_(stream) {}
+
+	virtual int GetChunkSize() {
+		return 65536;  // big chunks == faster
+	}
+
+	virtual void EndOfStream() {}
+
+	virtual WriteResult WriteAsciiChunk(char* data, int size) {
+		const size_t len = static_cast<size_t>(size);
+		size_t off = 0;
+
+		while (off < len && !feof(stream_) && !ferror(stream_))
+			off += fwrite(data + off, 1, len - off, stream_);
+
+		return off == len ? kContinue : kAbort;
+	}
+
+private:
+	FILE* stream_;
+};
+
+
+void V8IsolateImpl::WriteHeapSnapshot(const char* filename)
+{
+	
+	BEGIN_ISOLATE_SCOPE
+		
+		FILE *fp;
+		fopen_s(&fp, filename, "w");
+		if (fp == NULL){
+			return; 
+			/*
+			char errorMsg[500];
+			strcat_s(errorMsg, 500, "Could not open file ");
+			strcat_s(errorMsg, 500, filename);
+			
+			throw std::exception(errorMsg);*/
+		}
+
+		HeapProfiler* profiler = m_pIsolate->GetHeapProfiler();
+		Local<String> heapName = String::NewFromUtf8(m_pIsolate, "'bob'");
+		const  HeapSnapshot* heapSnapShot = profiler->TakeHeapSnapshot(heapName);
+		FileOutputStream stream(fp);
+		heapSnapShot->Serialize(&stream, HeapSnapshot::kJSON);
+		fclose(fp);
+
+		// Work around a deficiency in the API.  The HeapSnapshot object is const
+		// but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
+		// invalidates _all_ snapshots, including those created by other tools.
+		const_cast<HeapSnapshot*>(heapSnapShot)->Delete();
+		
+	END_ISOLATE_SCOPE
+}
+
+
 
 //-----------------------------------------------------------------------------
 

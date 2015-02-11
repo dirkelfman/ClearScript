@@ -920,7 +920,7 @@ namespace Microsoft.ClearScript
                     return InvokeMethod(name, args, bindArgs);
                 }
 
-                var property = target.Type.GetScriptableProperty(name, GetCommonBindFlags(), MiscHelpers.GetEmptyArray<object>());
+                var property = target.Type.GetScriptableProperty(name, GetCommonBindFlags(), MiscHelpers.GetEmptyArray<object>(), this.engine.EnableCaseInsensitivePropertyLookups);
                 if ((property != null) && (typeof(Delegate).IsAssignableFrom(property.PropertyType)))
                 {
                     var del = (Delegate)property.GetValue(target.InvokeTarget, invokeFlags | BindingFlags.GetProperty, Type.DefaultBinder, MiscHelpers.GetEmptyArray<object>(), culture);
@@ -982,14 +982,14 @@ namespace Microsoft.ClearScript
                 return hostMethod;
             }
 
-            var property = target.Type.GetScriptableProperty(name, invokeFlags, bindArgs);
+            var property = target.Type.GetScriptableProperty(name, invokeFlags, bindArgs, this.engine.EnableCaseInsensitivePropertyLookups);
             if (property != null)
             {
                 var result = property.GetValue(target.InvokeTarget, invokeFlags, Type.DefaultBinder, args, culture);
                 return engine.PrepareResult(result, property.PropertyType, property.IsRestrictedForScript());
             }
 
-            if (target.Type.GetScriptableProperties(name, invokeFlags).Any())
+            if (target.Type.GetScriptableProperties(name, invokeFlags, this.engine.EnableCaseInsensitivePropertyLookups).Any())
             {
                 if (hostIndexedPropertyMap == null)
                 {
@@ -1073,7 +1073,7 @@ namespace Microsoft.ClearScript
                 throw new InvalidOperationException("Invalid argument count");
             }
 
-            var property = target.Type.GetScriptableProperty(name, invokeFlags, bindArgs.Take(bindArgs.Length - 1).ToArray());
+            var property = target.Type.GetScriptableProperty(name, invokeFlags, bindArgs.Take(bindArgs.Length - 1).ToArray(), this.engine.EnableCaseInsensitivePropertyLookups);
             if (property != null)
             {
                 if (property.IsReadOnlyForScript())

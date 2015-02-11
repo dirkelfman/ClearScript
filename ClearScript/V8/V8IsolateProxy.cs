@@ -81,5 +81,7 @@ namespace Microsoft.ClearScript.V8
         public abstract V8RuntimeHeapInfo GetHeapInfo();
 
         public abstract void CollectGarbage(bool exhaustive);
+
+        public abstract void WriteHeapSnapshot(string fileName);
     }
 }

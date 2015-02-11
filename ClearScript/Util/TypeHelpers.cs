@@ -323,6 +323,7 @@ namespace Microsoft.ClearScript.Util
         public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, BindingFlags bindFlags)
         {
             var properties = type.GetProperties(bindFlags).AsEnumerable();
+
             if (type.IsInterface)
             {
                 properties = properties.Concat(type.GetInterfaces().SelectMany(interfaceType => interfaceType.GetScriptableProperties(bindFlags)));
@@ -331,14 +332,27 @@ namespace Microsoft.ClearScript.Util
             return properties.Where(property => property.IsScriptable());
         }
 
-        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, string name, BindingFlags bindFlags)
+        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, string name, BindingFlags bindFlags, bool enableCaseInsensitivity)
         {
-            return type.GetScriptableProperties(bindFlags).Where(property => property.GetScriptName() == name);
+            var props = type.GetScriptableProperties(bindFlags).ToList();
+
+            var list = props.Where(property => property.GetScriptName() == name).ToArray();
+            if (enableCaseInsensitivity && list.Length == 0)
+            {
+                return props.Where(property => string.Equals(property.GetScriptName(), name, StringComparison.InvariantCultureIgnoreCase));
+            }
+
+      
+            
+         
+            return list;
         }
 
-        public static PropertyInfo GetScriptableProperty(this Type type, string name, BindingFlags bindFlags, object[] bindArgs)
+        public static PropertyInfo GetScriptableProperty(this Type type, string name, BindingFlags bindFlags, object[] bindArgs,  bool enableCaseInsensitivity)
         {
-            var properties = type.GetScriptableProperties(name, bindFlags).Distinct(PropertySignatureComparer.Instance).ToArray();
+            //var properties = type.GetScriptableProperties(name, bindFlags, enableCaseInsensitivity).ToArray();
+
+            var properties = type.GetScriptableProperties(name, bindFlags, enableCaseInsensitivity).Distinct(PropertySignatureComparer.Instance).ToArray();
             if (properties.Length < 1)
             {
                 return null;
@@ -355,9 +369,9 @@ namespace Microsoft.ClearScript.Util
             {
                 var parameters = properties[0].GetIndexParameters();
                 if ((bindArgs.Length == parameters.Length) || ((bindArgs.Length > 0) && (parameters.Length >= bindArgs.Length)))
-                {
-                    return properties[0];
-                }
+            {
+                return properties[0];
+            }
             }
 
             return null;

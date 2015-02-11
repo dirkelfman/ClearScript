@@ -451,6 +451,7 @@ namespace Microsoft.ClearScript
                 return scriptItem.PostProcessBindResult(metaDynamic.BindBinaryOperation(binder, arg));
             }
 
+           
             public override DynamicMetaObject BindConvert(ConvertBinder binder)
             {
                 return scriptItem.PostProcessBindResult(metaDynamic.BindConvert(binder));

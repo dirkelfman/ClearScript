@@ -70,6 +70,7 @@
 #include "v8.h"
 #include "v8-platform.h"
 #include "v8-debug.h"
+#include "v8-profiler.h"
 using namespace v8;
 
 #pragma warning(pop)

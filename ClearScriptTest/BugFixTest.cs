@@ -640,6 +640,7 @@ namespace Microsoft.ClearScript.Test
             // ReSharper restore RedundantAssignment
         }
 
+        
         [TestMethod, TestCategory("BugFix")]
         public void BugFix_IDispatchExArgLeak_InvokeMethod_JScript()
         {
