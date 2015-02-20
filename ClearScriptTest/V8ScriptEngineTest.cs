@@ -75,6 +75,7 @@ using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.ClearScript.Util;
 using Microsoft.ClearScript.V8;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript.Test
 {
@@ -115,6 +116,50 @@ namespace Microsoft.ClearScript.Test
             engine.AddHostObject("host", host);
             Assert.AreSame(host, engine.Evaluate("host"));
         }
+
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_Jtokens1()
+        {
+            //var pbag = new PropertyBag();
+            //pbag["a"] = 123;
+            //pbag["b"] = new PropertyBag();
+
+            //engine.AddHostObject("pbag", pbag);
+            //var pbagV = engine.Evaluate("pbag.a");
+            //Assert.AreEqual(pbagV, (object)123);
+            //Assert.AreEqual("ab", engine.Evaluate("var ret='';for( k in pbag){ret+=k;};ret=ret;"));
+
+            var jobj = JObject.Parse("{ a: 123 , a1:'food' , b:{ c:1 , d:[1,2,3], e:[{f:1},{f:2}]}}");
+            engine.AddHostObject("jobj", jobj);
+            var jobjV = engine.Evaluate("jobj.a");
+            Assert.AreEqual(jobjV, (object)123);
+            Assert.AreEqual(engine.Evaluate("jobj.b.c"),1);
+            Assert.AreEqual(engine.Evaluate("jobj.b.d[2]"), 3);
+
+            Assert.AreEqual("aa1b", engine.Evaluate("var ret='';for( k in jobj){ret+=k;};ret=ret;"));
+            
+
+           
+            engine.Evaluate("jobj.a =234");
+            Assert.AreEqual(engine.Evaluate("jobj.a"), (object)234);
+
+            engine.Evaluate("jobj.a2 ={'a2a':1234};");
+            Assert.AreEqual(engine.Evaluate("jobj.a2.a2a"), (object)1234);
+
+            engine.Evaluate("jobj.a3 =[8,9,10];");
+            Assert.AreEqual(engine.Evaluate("jobj.a3[1]"), 9);
+
+
+            engine.Evaluate("jobj.a3[1] =25;");
+            Assert.AreEqual(engine.Evaluate("jobj.a3[1]"),25);
+
+            engine.Evaluate("jobj.a3.push('a');");
+            Assert.AreEqual(engine.Evaluate("jobj.a3[3]"), "a");
+
+        }
+
+
 
         [TestMethod, TestCategory("V8ScriptEngine")]
         [ExpectedException(typeof(InvalidOperationException))]
@@ -1174,6 +1219,52 @@ namespace Microsoft.ClearScript.Test
             engine.CollectGarbage(true);
             Assert.IsTrue(usedHeapSize > engine.GetRuntimeHeapInfo().UsedHeapSize);
         }
+
+
+
+        public class Bing
+        {
+            public object A { get; set; }
+            public BingFoo Blarg { get; set; }
+
+            public string Stuff()
+            {
+                return "xxx";
+            }
+        }
+
+        public class BingFoo
+        {
+            public string Foo { get; set; }
+        }
+
+        [TestMethod, TestCategory("Fart")]
+        public void Fart()
+        {
+            var code = "x = function (arg){ return arg.ToString()+ arg.Stuff();};";
+            var fn = (dynamic)engine.Evaluate(code);
+
+            
+
+            var bing = new Bing()
+                       {
+                           A = 123,
+                           Blarg = new BingFoo()
+                                   {
+                                       Foo = "potatoe"
+                                   }
+                       };
+
+            var obj = HostItem.Wrap(engine, bing, typeof(BingFoo));
+           
+        //    engine.AddHostObject("fart" , HostItemFlags.None, bing);
+
+
+            string xxx = (string)fn.call(null, obj);
+
+        }
+
+
 
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngine_MaxRuntimeHeapSize_ShortBursts()

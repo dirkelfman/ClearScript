@@ -72,6 +72,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.InteropServices.Expando;
 using Microsoft.ClearScript.Util;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript
 {
@@ -90,6 +91,8 @@ namespace Microsoft.ClearScript
 
         private IDynamic targetDynamic;
         private IPropertyBag targetPropertyBag;
+        private JToken targetJToken;
+
         private IList targetList;
         private DynamicMetaObject targetDynamicMetaObject;
         private IEnumerator targetEnumerator;
@@ -236,6 +239,11 @@ namespace Microsoft.ClearScript
             {
                 return InvokePropertyBagMember(name, invokeFlags, args, bindArgs);
             }
+            if (targetJToken != null)
+            {
+                
+                return InvokeJTokenMember(name, invokeFlags, args, bindArgs);
+            }
 
             if (targetList != null)
             {
@@ -296,6 +304,11 @@ namespace Microsoft.ClearScript
                 targetDynamicMetaObject = null;
             }
             else if (BindSpecialTarget(out targetPropertyBag))
+            {
+                targetList = null;
+                targetDynamicMetaObject = null;
+            }
+            else if (BindSpecialTarget(out targetJToken))
             {
                 targetList = null;
                 targetDynamicMetaObject = null;
@@ -462,7 +475,7 @@ namespace Microsoft.ClearScript
 
         private string[] GetAllFieldNames()
         {
-            if ((targetDynamic == null) && (targetPropertyBag == null))
+            if ((targetDynamic == null) && (targetPropertyBag == null)&& (targetJToken ==null))
             {
                 return GetLocalFieldNames().Concat(GetLocalEventNames()).Distinct().ToArray();
             }
@@ -473,7 +486,7 @@ namespace Microsoft.ClearScript
         private string[] GetAllMethodNames()
         {
             var names = target.GetAuxMethodNames(GetMethodBindFlags()).AsEnumerable();
-            if ((targetDynamic == null) && (targetPropertyBag == null))
+            if ((targetDynamic == null) && (targetPropertyBag == null) &&( targetJToken == null))
             {
                 names = names.Concat(GetLocalMethodNames());
                 if (target.Flags.HasFlag(HostTargetFlags.AllowExtensionMethods))
@@ -497,6 +510,19 @@ namespace Microsoft.ClearScript
             else if (targetPropertyBag != null)
             {
                 names = names.Concat(targetPropertyBag.Keys);
+            }
+            else if (targetJToken != null   )
+            {
+                var jobj = targetJToken as  IDictionary<string, JToken>;
+                if (jobj != null)
+                {
+                    names =  names.Concat(jobj.Keys ); 
+                }
+                else 
+                {
+                     //todo
+                }
+               // names = names.Concat(targetJToken.);
             }
             else
             {
@@ -704,6 +730,7 @@ namespace Microsoft.ClearScript
             throw new InvalidOperationException("Invalid member invocation mode");
         }
 
+
         private object InvokePropertyBagMember(string name, BindingFlags invokeFlags, object[] args, object[] bindArgs)
         {
             if (invokeFlags.HasFlag(BindingFlags.InvokeMethod))
@@ -760,6 +787,110 @@ namespace Microsoft.ClearScript
             }
 
             throw new InvalidOperationException("Invalid member invocation mode");
+        }
+
+
+        private object InvokeJTokenMember(string name, BindingFlags invokeFlags, object[] args, object[] bindArgs)
+        {
+            object retValue = null;
+            var jVal = targetJToken as JValue;
+            JArray jArray = null;
+            if (invokeFlags.HasFlag(BindingFlags.GetField) || invokeFlags.HasFlag(BindingFlags.GetProperty))
+            {
+                if (jVal != null)
+                {
+                    retValue = jVal.Value.GetType().InvokeMember(name, invokeFlags, null, jVal.Value, args);
+                }
+                else
+                {
+                    jArray = targetJToken as JArray;
+                    if (jArray != null)
+                    {
+                        int indx;
+                        if (int.TryParse(name, out indx))
+                        {
+                            retValue = jArray[indx];
+                        }
+                        else if ( name == "length")
+                        {
+                            retValue = jArray.Count;
+                        }
+                    }
+                    else
+                    {
+                        retValue = targetJToken[name];
+                    }
+
+                    if (retValue != null && retValue is JValue)
+                    {
+                        retValue = ((JValue)retValue).Value;
+                    }
+                }
+                if (retValue == null)
+                {
+                    switch (name)
+                    {
+                        case "push":
+                        {
+                            if (jArray != null)
+                            {
+                                
+                                Func<object,int> push = (object o) =>
+                                {
+                                    jArray.Add(o);
+                                    return jArray.Count;
+                                };
+                                return push;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return retValue;
+            }
+            else if (invokeFlags.HasFlag(BindingFlags.SetField) || invokeFlags.HasFlag(BindingFlags.SetProperty))
+            {
+              
+                var scriptItem = args[0] as Microsoft.ClearScript.ScriptItem;
+                var json = JToken.FromObject(args[0]);
+                
+                object temp;
+
+                if (scriptItem != null && scriptItem.TryGetMember(new MyGetMemberBinder("length"), out temp) && temp is int)
+                {
+                    json = new JArray(json.OfType<JProperty>().Select(x =>
+                    {
+                        return x.Value;
+                    } ).ToArray());
+                }
+                jArray = targetJToken as JArray;
+                if (jArray != null)
+                {
+                    jArray[int.Parse(name)] = json;
+                }
+                else
+                {
+                    targetJToken[name] = json;
+                }
+                
+                return args[0];
+            }
+           
+            throw new InvalidOperationException("Invalid member invocation mode");
+           
+            
+        }
+
+        class MyGetMemberBinder : GetMemberBinder
+        {
+            public MyGetMemberBinder(string name) : base(name, false)
+            {
+                
+            }
+            public override DynamicMetaObject FallbackGetMember(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
+            {
+                return null;
+            }
         }
 
         private object InvokeListElement(int index, BindingFlags invokeFlags, object[] args, object[] bindArgs)
