@@ -2065,6 +2065,80 @@ namespace Microsoft.ClearScript.Test
             // ReSharper restore AccessToDisposedClosure
         }
 
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_NextTick()
+        {
+            // ReSharper disable AccessToDisposedClosure
+
+            using (var innerEngine = new V8ScriptEngine())
+            {
+             
+                var callBackTester = new CallbackTester();
+                
+                engine.AddHostObject("tester", callBackTester);
+                engine.AddHostObject("process", new Process(engine));
+
+                var scriptCallback = (dynamic)engine.Evaluate("g=function (){ process.nextTick( function(){tester.Callback(2); g=h/j;}); tester.Callback(1);}");
+
+             
+                var clinetCallbackWrapper = new Action(() =>
+                {
+                    scriptCallback();
+                });
+                engine.NextTick(clinetCallbackWrapper);
+
+                callBackTester.Handle.WaitOne(10000);
+                Assert.AreEqual((int)callBackTester.State, 1);
+                callBackTester.Handle.WaitOne(10000);
+
+                Assert.AreEqual((int)callBackTester.State , 2);
+
+                //let loop die.
+
+
+                //start new loop
+                engine.NextTick(clinetCallbackWrapper);
+                callBackTester.Handle.WaitOne(10000);
+                Assert.AreEqual((int)callBackTester.State , 1);
+                callBackTester.Handle.WaitOne(10000);
+
+                Assert.AreEqual((int)callBackTester.State , 2);
+               
+            }
+
+            // ReSharper restore AccessToDisposedClosure
+        }
+
+        public class Process
+        {
+            private readonly V8ScriptEngine engine;
+
+            public Process(V8ScriptEngine engine)
+            {
+                this.engine = engine;
+            }
+
+            public void nextTick(dynamic d)
+            {
+                this.engine.NextTick(d);
+            }
+        }
+
+        public class CallbackTester
+        {
+            public AutoResetEvent Handle = new AutoResetEvent(false);
+            public object State { get; set; }
+
+            public void Callback(object state)
+            {
+                State = state;
+                Handle.Set();
+           
+            }
+        }
+
+
         // ReSharper restore InconsistentNaming
 
         #endregion

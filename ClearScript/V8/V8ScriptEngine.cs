@@ -60,10 +60,14 @@
 //       
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Channels;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.ClearScript.Util;
 using Microsoft.ClearScript.Windows;
 
@@ -842,6 +846,8 @@ namespace Microsoft.ClearScript.V8
             return result;
         }
 
+
+
         #endregion
 
         #region ScriptEngine overrides (disposition / finalization)
@@ -884,7 +890,81 @@ namespace Microsoft.ClearScript.V8
             return documentNames;
         }
 
-        #endregion
 
+        #endregion
+        //todo interlock exchange
+        private object _processingEventLoop = false;
+
+        ConcurrentQueue<Action> _concurrentQueue = new ConcurrentQueue<Action>();
+
+        /// <summary>
+        /// Adds to the event loop of stuff
+        /// </summary>
+        /// <param name="callback">thing to do</param>
+        public void NextTick (Action callback)
+        {
+            _concurrentQueue.Enqueue(callback);
+            lock (_processingEventLoop)
+            {
+                if ((bool)_processingEventLoop == false)
+                {
+                    _processingEventLoop = true;
+                    var d = (EventHandler)ProcessEventLoop;
+                    d.BeginInvoke(null, EventArgs.Empty, ar => { }, null);
+                }
+            }
+            
+        }
+        /// <summary>
+        /// Adds to the event loop of stuff
+        /// </summary>
+        /// <param name="callback">thing to do</param>
+        public void NextTick(dynamic callback)
+        {
+            if (callback is Action)
+            {
+                NextTick((Action )callback);
+            }
+            NextTick(() =>
+            {
+                callback();
+            });
+        }
+
+        /// <summary>
+        /// Delegate to handled faulted invokations thru the nexttick queue
+        /// </summary>
+        public Action<Exception> BackgroundExceptionHandler { get; set; }
+        
+        private void ProcessEventLoop(object sender, EventArgs args)
+        {
+           
+            Action action;
+            while (_concurrentQueue.TryDequeue(out action))
+            {
+                if (disposedFlag.IsSet())
+                {
+                    _processingEventLoop = false;
+                    return;
+                }
+                try
+                {
+                    this.ScriptInvoke(action);
+              
+                }
+                catch (Exception ex)
+                {
+                    if (BackgroundExceptionHandler != null)
+                    {
+                        BackgroundExceptionHandler(ex);
+                    }
+                    
+                }
+            }
+            lock (_processingEventLoop)
+            {
+                _processingEventLoop = false;
+            }
+        }
     }
 }
