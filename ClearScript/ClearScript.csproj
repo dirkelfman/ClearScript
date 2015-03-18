@@ -93,6 +93,7 @@
     <Compile Include="Util\SocketHelpers.cs" />
     <Compile Include="Util\SpecialDispIDs.cs" />
     <Compile Include="V8\IV8DebugListener.cs" />
+    <Compile Include="V8\IV8ScriptItem.cs" />
     <Compile Include="V8\V8DebugAgent.cs" />
     <Compile Include="V8\V8RuntimeHeapInfo.cs" />
     <Compile Include="V8\V8Script.cs" />

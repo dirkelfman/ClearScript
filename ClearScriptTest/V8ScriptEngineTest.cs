@@ -75,6 +75,7 @@ using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.ClearScript.Util;
 using Microsoft.ClearScript.V8;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript.Test
@@ -2065,6 +2066,119 @@ namespace Microsoft.ClearScript.Test
             // ReSharper restore AccessToDisposedClosure
         }
 
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void toStringOverride()
+        {
+
+            var foo=(dynamic)engine.Evaluate("function Foo(){};Foo.prototype.go=function(){ this.val=this.val||1; return this.val++;};f=new Foo();");
+            
+            var jObj =(dynamic)engine.Evaluate("x={a:1,a1:function(){},b:'2',c:[1,2,3],d:{a:1,b:'b'},e:[{a:1,b:3},{a:2,b:'2',c:new Date()}],f:new Date()};")
+            ;
+            
+            Newtonsoft.Json.JsonSerializer ser = new JsonSerializer();
+         //  ser.ContractResolver = new V8ContractResolver();
+          //  ser.Converters.Add(new V8ScriptItemConverter());
+
+            var njObj = JContainer.FromObject(jObj, ser);
+            
+           
+            
+
+
+
+
+        }
+
+        public class Map : DynamicObject, IEnumerable
+        {
+            private readonly IDictionary<string, object> dict = new Dictionary<string, object>();
+            private IList list;
+            public void Add(string key, object value)
+            {
+                dict.Add(key, value);
+                list = null;
+            }
+            public override IEnumerable<string> GetDynamicMemberNames()
+            {
+                foreach (var name in dict.Keys)
+                {
+                    yield return name;
+                }
+                foreach (var index in Enumerable.Range(0, dict.Count()))
+                {
+                    yield return index.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+
+            public override bool TrySetMember(SetMemberBinder binder, object value)
+            {
+                dict[binder.Name] = value;
+                return true;
+            }
+
+            public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+            {
+                dynamic obj;
+                if (dict.TryGetValue(binder.Name, out obj))
+                {
+                    result = obj(args);
+                }
+                else
+                {
+                    result = null;
+                }
+                return true;
+            }
+
+            public override bool TryGetMember(GetMemberBinder binder, out object result)
+            {
+                var name = binder.Name;
+                var found = dict.TryGetValue(name, out result);
+                if (!found)
+                {
+                    int index;
+                    if (int.TryParse(name, out index) && (index >= 0) && (index < dict.Count()))
+                    {
+                        if (list == null)
+                        {
+                            list = dict.ToList();
+                        }
+                        result = list[index];
+                        found = true;
+                    }
+                }
+                if (!found)
+                {
+                    //todo undefinde
+                    result = null;
+                }
+                return true;
+            }
+            public IEnumerator GetEnumerator()
+            {
+                return dict.GetEnumerator();
+            }
+        }
+
+        public class OverridesToString
+        {
+            public string FOO(params object[] args)
+            {
+                return string.Join( "---",args);
+            }
+
+            [ScriptMember("toString",ScriptAccess.Full, ScriptMemberFlags.ExposeRuntimeType)]
+            public  string toString()
+            {
+                return "xxx";
+            }
+
+            public override string ToString()
+            {
+                return toString();
+            }
+        }
 
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngine_NextTick()

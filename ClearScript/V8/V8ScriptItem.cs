@@ -66,17 +66,19 @@ using Microsoft.ClearScript.Util;
 
 namespace Microsoft.ClearScript.V8
 {
-    internal class V8ScriptItem : ScriptItem, IDisposable
+    [Newtonsoft.Json.JsonConverter(typeof(V8ScriptItemConverter))]
+    internal class V8ScriptItem : ScriptItem, IDisposable , IV8ScriptItem
     {
         private readonly V8ScriptEngine engine;
         private readonly IV8Object target;
         private V8ScriptItem holder;
         private DisposedFlag disposedFlag = new DisposedFlag();
-
+       
         private V8ScriptItem(V8ScriptEngine engine, IV8Object target)
         {
             this.engine = engine;
             this.target = target;
+            
         }
 
         public static object Wrap(V8ScriptEngine engine, object obj)
@@ -311,5 +313,23 @@ namespace Microsoft.ClearScript.V8
         }
 
         #endregion
+
+        public JsTypes GetJsType()
+        {
+            if (!_jsType.HasValue)
+            {
+                var fn = this.engine.Script.getJsTypeId;
+                if (fn == null || fn is Undefined)
+                {
+                    fn = this.engine.Evaluate("x= function (obj){ if (obj instanceof Array){return 1;};if (obj instanceof Date){return 2;};if (obj instanceof Function){return 3;}; return 0;};");
+                    this.engine.Script.getJsTypeId = fn;
+                }
+                _jsType = (JsTypes)(int)fn(this);
+            }
+            return _jsType.Value;
+        }
+
+        private JsTypes? _jsType;
+        
     }
 }
