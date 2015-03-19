@@ -97,10 +97,14 @@ namespace Microsoft.ClearScript.V8
                 for (int i = 0; i < len; i++)
                 {
                     var item= v8Item.GetProperty(i.ToString());
+                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+                    {
+                        continue;
+                    }
                     obj[i] = item is Undefined ? null : item;
                 }
                 serializer.Serialize(writer, obj, obj.GetType());
-                //new JsonArrayContract(typeof(object)).Converter.WriteJson(writer, value, serializer);
+                
             }
             else if (jsType == JsTypes.JsObject )
             {
@@ -108,6 +112,10 @@ namespace Microsoft.ClearScript.V8
                 foreach (var pname in v8Item.GetPropertyNames())
                 {
                     var item=v8Item.GetProperty(pname);
+                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+                    {
+                        continue;
+                    }
                     obj[pname] = item is Undefined ? null : item;
                 }
                 serializer.Serialize(writer, obj, obj.GetType());

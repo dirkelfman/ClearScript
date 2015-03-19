@@ -78,8 +78,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+
 namespace Microsoft.ClearScript.Test
 {
+   
+
     [TestClass]
     [DeploymentItem("ClearScriptV8-64.dll")]
     [DeploymentItem("ClearScriptV8-32.dll")]
@@ -122,15 +125,7 @@ namespace Microsoft.ClearScript.Test
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngine_Jtokens1()
         {
-            //var pbag = new PropertyBag();
-            //pbag["a"] = 123;
-            //pbag["b"] = new PropertyBag();
-
-            //engine.AddHostObject("pbag", pbag);
-            //var pbagV = engine.Evaluate("pbag.a");
-            //Assert.AreEqual(pbagV, (object)123);
-            //Assert.AreEqual("ab", engine.Evaluate("var ret='';for( k in pbag){ret+=k;};ret=ret;"));
-
+           
             var jobj = JObject.Parse("{ a: 123 , a1:'food' , b:{ c:1 , d:[1,2,3], e:[{f:1},{f:2}]}}");
             engine.AddHostObject("jobj", jobj);
             var jobjV = engine.Evaluate("jobj.a");
@@ -1223,48 +1218,9 @@ namespace Microsoft.ClearScript.Test
 
 
 
-        public class Bing
-        {
-            public object A { get; set; }
-            public BingFoo Blarg { get; set; }
+       
 
-            public string Stuff()
-            {
-                return "xxx";
-            }
-        }
-
-        public class BingFoo
-        {
-            public string Foo { get; set; }
-        }
-
-        [TestMethod, TestCategory("Fart")]
-        public void Fart()
-        {
-            var code = "x = function (arg){ return arg.ToString()+ arg.Stuff();};";
-            var fn = (dynamic)engine.Evaluate(code);
-
-            
-
-            var bing = new Bing()
-                       {
-                           A = 123,
-                           Blarg = new BingFoo()
-                                   {
-                                       Foo = "potatoe"
-                                   }
-                       };
-
-            var obj = HostItem.Wrap(engine, bing, typeof(BingFoo));
-           
-        //    engine.AddHostObject("fart" , HostItemFlags.None, bing);
-
-
-            string xxx = (string)fn.call(null, obj);
-
-        }
-
+      
 
 
         [TestMethod, TestCategory("V8ScriptEngine")]
@@ -2068,7 +2024,7 @@ namespace Microsoft.ClearScript.Test
 
 
         [TestMethod, TestCategory("V8ScriptEngine")]
-        public void toStringOverride()
+        public void V8ScriptEnging_array_date_json_serialization()
         {
 
             var foo=(dynamic)engine.Evaluate("function Foo(){};Foo.prototype.go=function(){ this.val=this.val||1; return this.val++;};f=new Foo();");
@@ -2077,19 +2033,44 @@ namespace Microsoft.ClearScript.Test
             ;
             
             Newtonsoft.Json.JsonSerializer ser = new JsonSerializer();
-         //  ser.ContractResolver = new V8ContractResolver();
-          //  ser.Converters.Add(new V8ScriptItemConverter());
+       
 
-            var njObj = JContainer.FromObject(jObj, ser);
+            var njObj = (JObject)JContainer.FromObject(jObj, ser);
+
+
+            Assert.AreEqual((int)njObj.SelectToken("e.[0].a"), 1);
+
+            var cwa = new ClassWithArrays()
+                      {
+                          Nums = new int[] { 1, 2, 3 },
+                          Strs = new string[] { "a", "b", "c" },
+                          DateTimes = new List<DateTime>()
+                                      {
+                                          new DateTime(2000, 1, 1),
+                                          new DateTime(2010, 10, 10, 10, 10, 10, DateTimeKind.Utc)
+                                      }
+                      };
+
+            var strcwa = JObject.FromObject(cwa).ToString();
+
+            var jCwa = engine.Evaluate("x=" + strcwa + ";");
+
+            var cwa2 =JObject.FromObject(jCwa).ToObject<ClassWithArrays>();
+
+            Assert.AreEqual(cwa.Nums[2], cwa2.Nums[2]);
+            Assert.AreEqual(cwa.DateTimes[1], cwa2.DateTimes[1]);
+
             
-           
-            
-
-
-
 
         }
 
+        public class ClassWithArrays
+        {
+            public int[] Nums { get; set; }
+            public string[] Strs { get; set; }
+
+            public List<DateTime> DateTimes { get; set; }
+        }
         public class Map : DynamicObject, IEnumerable
         {
             private readonly IDictionary<string, object> dict = new Dictionary<string, object>();

@@ -72,6 +72,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.InteropServices.Expando;
 using Microsoft.ClearScript.Util;
+using Microsoft.ClearScript.V8;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript
@@ -851,18 +852,8 @@ namespace Microsoft.ClearScript
             else if (invokeFlags.HasFlag(BindingFlags.SetField) || invokeFlags.HasFlag(BindingFlags.SetProperty))
             {
               
-                var scriptItem = args[0] as Microsoft.ClearScript.ScriptItem;
+              
                 var json = JToken.FromObject(args[0]);
-                
-                object temp;
-
-                if (scriptItem != null && scriptItem.TryGetMember(new MyGetMemberBinder("length"), out temp) && temp is int)
-                {
-                    json = new JArray(json.OfType<JProperty>().Select(x =>
-                    {
-                        return x.Value;
-                    } ).ToArray());
-                }
                 jArray = targetJToken as JArray;
                 if (jArray != null)
                 {
