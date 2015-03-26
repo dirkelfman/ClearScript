@@ -19,8 +19,11 @@ Thumbs.db
 *.cache
 *.ilk
 *.log
+*.ide
+*.orig
 [Bb]in
 [Dd]ebug*/
+[Pp]ackages*/
 *.sbr
 obj/
 [Rr]elease*/

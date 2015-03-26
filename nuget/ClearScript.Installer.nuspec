@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>ClearScript.Installer</id>
+        <version>$version$</version>
+        <title>ClearScript.Installer</title>
+        <authors>eric_swann</authors>
+        <owners>eric_swann</owners>
+        <projectUrl>https://github.com/eswann/ClearScript.Installer</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>ClearScript Installer encapsulates everything needed to properly add ClearScript 5.4 to your project using the V8 engine.</description>
+        <summary>ClearScript Installer encapsulates everything needed to properly add ClearScript 5.4 to your project using the V8 engine.</summary>
+        <copyright>Copyright 2014 Eric Swann, et. al. - All rights reserved.</copyright>
+        <language/>
+        <tags>ClearScript V8 JavaScript</tags>
+        <dependencies/>
+    </metadata>
+    <files>
+        <file src="Web.config.install.xdt" target="content"/>
+        <file src="Web.config.uninstall.xdt" target="content"/>
+        <file src="ClearScript.Installer.targets" target="build"/>
+        <file src="..\bin\release\ClearScript.dll" target="lib\net45"/>
+        <file src="..\bin\release\ClearScriptV8-32.dll" target="tools/native"/>
+        <file src="..\bin\release\ClearScriptV8-64.dll" target="tools/native"/>
+        <file src="..\bin\release\v8-ia32.dll" target="tools/native"/>
+        <file src="..\bin\release\v8-x64.dll" target="tools/native"/>
+        
+
+
+   <!--       <file src="..\..\lib\ClearScript.pdb" target="lib\net45"/>
+         <file src="..\..\lib\v8-x64.pdb" target="tools/native"/>
+             <file src="..\..\lib\v8-ia32.pdb" target="tools/native"/>
+                 <file src="..\..\lib\ClearScriptV8-64.pdb" target="tools/native"/>
+                    <file src="..\..\lib\ClearScriptV8-32.pdb" target="tools/native"/> -->
+    </files>
+</package>

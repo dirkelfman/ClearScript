@@ -1,0 +1,17 @@
+﻿<?xml version="1.0"?>
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+
+
+
+	<system.web>
+		<compilation >
+			<assemblies >
+				<remove xdt:Transform="Insert" assembly="ClearScriptV8-32"/>
+				<remove xdt:Transform="Insert" assembly="ClearScriptV8-64"/>
+
+			</assemblies>
+		</compilation>
+	</system.web>
+
+
+</configuration>

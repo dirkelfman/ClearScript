@@ -81,7 +81,14 @@ using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript.Test
 {
-   
+
+    public static class DateExt1
+    {
+        public static int getMonth(this DateTime dt)
+        {
+            return dt.Month;
+        }
+    }
 
     [TestClass]
     [DeploymentItem("ClearScriptV8-64.dll")]
@@ -122,6 +129,9 @@ namespace Microsoft.ClearScript.Test
         }
 
 
+
+
+      
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngine_Jtokens1()
         {
@@ -155,6 +165,24 @@ namespace Microsoft.ClearScript.Test
 
         }
 
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_Jtokens_extensionMethods()
+        {
+            engine.AddHostType("dateExt1",typeof(DateExt1));
+            var fn=(dynamic)engine.Evaluate("x=function(x){ return x.getMonth();};");
+            var month=(int)fn(DateTime.Now);
+
+            Assert.AreEqual(DateTime.Now.Month, month);
+
+            JObject job = new JObject();
+            job["date"] = JToken.FromObject(DateTime.Now);
+            fn = (dynamic)engine.Evaluate("x=function(x){ return x.date.getMonth();};");
+            month =fn(job);
+            Assert.AreEqual(DateTime.Now.Month, month);
+
+        }
+
+        
 
 
         [TestMethod, TestCategory("V8ScriptEngine")]
@@ -2064,6 +2092,37 @@ namespace Microsoft.ClearScript.Test
 
         }
 
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_JSON_stringify()
+        {
+            //Map m = new Map();
+            //m.Add("a",1);
+            //engine.AddHostItem("map", HostItemFlags.None, m);
+            //var mapString = (string)engine.Evaluate("JSON.stringify(map);");
+            engine.AddHostType("xx", typeof(TestExtensions));
+
+            var x = JArray.Parse("[\"a\",\"b\",1]");
+            //var x = new List<int>() { 1, 2, 3 };
+            engine.Execute("function foo(x){ return x.IsList()}");
+            
+            //engine.Execute("function foo(x){ var ret='';for(k in x){ret =ret+k;} return ret;}");
+            //var ret =(string)engine.Script.foo(jarray);
+
+            //var x = new Version(1, 2, 3, 4);
+            var ret3 = engine.Script.foo(x);
+
+
+            //List<object> list = new List<object>();
+            //list.Add(1);
+            //list.Add("b");
+
+            //engine.AddHostType("sdf", typeof(TestExtensions));
+            //engine.AddHostItem("list", HostItemFlags.None, list);
+
+            //var listString = (string)engine.Evaluate("JSON.stringify(list);");
+            //var listString2 = (string)engine.Evaluate("JSON.stringify([1,2,3,list]);");
+
+        }
         public class ClassWithArrays
         {
             public int[] Nums { get; set; }
@@ -2080,16 +2139,24 @@ namespace Microsoft.ClearScript.Test
                 dict.Add(key, value);
                 list = null;
             }
+
+            private List<string> _memberNames = null;
             public override IEnumerable<string> GetDynamicMemberNames()
             {
-                foreach (var name in dict.Keys)
+                if (_memberNames == null)
                 {
-                    yield return name;
+                    _memberNames = new List<string>(dict.Keys.Count*2);
+                    foreach (var name in dict.Keys)
+                    {
+                        _memberNames.Add(name);
+                    }
+                    foreach (var index in Enumerable.Range(0, dict.Count()))
+                    {
+                        _memberNames.Add(index.ToString(CultureInfo.InvariantCulture));
+                    }
                 }
-                foreach (var index in Enumerable.Range(0, dict.Count()))
-                {
-                    yield return index.ToString(CultureInfo.InvariantCulture);
-                }
+                return _memberNames;
+               
             }
 
             public override bool TrySetMember(SetMemberBinder binder, object value)
@@ -2321,5 +2388,27 @@ namespace Microsoft.ClearScript.Test
         // ReSharper restore UnusedMember.Local
 
         #endregion
+    }
+
+    public static class TestExtensions
+    {
+        public static bool IsList(this object obj)
+        {
+            if (obj == null)
+            {
+                return false;
+            }
+            return obj.GetType().GetInterfaces().Any(x =>
+                x.IsGenericType &&
+                x.GetGenericTypeDefinition() == typeof(IList<>));
+        }
+
+        public static string toCSJSON(this object obj)
+        {
+            StringWriter sw = new StringWriter();
+             Newtonsoft.Json.JsonSerializer.CreateDefault().Serialize(sw, obj);
+            sw.Flush();
+            return sw.GetStringBuilder().ToString();
+        }
     }
 }

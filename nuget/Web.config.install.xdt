@@ -1,0 +1,33 @@
+﻿<?xml version="1.0"?>
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+
+
+	<system.web xdt:Transform="InsertIfMissing">
+
+	</system.web>
+
+	<system.web >
+		<compilation xdt:Transform="InsertIfMissing">
+		</compilation>
+	</system.web>
+
+	<system.web >
+		<compilation >
+			<assemblies xdt:Transform="InsertIfMissing">
+			</assemblies>
+		</compilation>
+	</system.web>
+
+
+	<system.web>
+		<compilation >
+			<assemblies >
+				<remove  xdt:Transform="Insert"  xdt:Locator="Match(assembly)" assembly="ClearScriptV8-32"/>
+				<remove  xdt:Transform="Insert"  xdt:Locator="Match(assembly)" assembly="ClearScriptV8-64"/>
+
+			</assemblies>
+		</compilation>
+	</system.web>
+
+
+</configuration>

@@ -242,8 +242,8 @@ namespace Microsoft.ClearScript
             }
             if (targetJToken != null)
             {
-                
-                return InvokeJTokenMember(name, invokeFlags, args, bindArgs);
+
+                return InvokeJTokenMember(name, invokeFlags, args, bindArgs, culture, out isCacheable);
             }
 
             if (targetList != null)
@@ -490,13 +490,12 @@ namespace Microsoft.ClearScript
             if ((targetDynamic == null) && (targetPropertyBag == null) &&( targetJToken == null))
             {
                 names = names.Concat(GetLocalMethodNames());
-                if (target.Flags.HasFlag(HostTargetFlags.AllowExtensionMethods))
-                {
-                    cachedExtensionMethodSummary = engine.ExtensionMethodSummary;
-                    names = names.Concat(cachedExtensionMethodSummary.MethodNames);
-                }
             }
-
+            if (target.Flags.HasFlag(HostTargetFlags.AllowExtensionMethods))
+            {
+                cachedExtensionMethodSummary = engine.ExtensionMethodSummary;
+                names = names.Concat(cachedExtensionMethodSummary.MethodNames);
+            }
             return names.Distinct().ToArray();
         }
 
@@ -519,9 +518,14 @@ namespace Microsoft.ClearScript
                 {
                     names =  names.Concat(jobj.Keys ); 
                 }
-                else 
+                else if (targetJToken is JArray)
                 {
-                     //todo
+                    names = names.Concat(Enumerable.Range(0, ((JArray)targetJToken).Count).Select(x=>x.ToString()));
+               
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("wtf");
                 }
                // names = names.Concat(targetJToken.);
             }
@@ -584,6 +588,7 @@ namespace Microsoft.ClearScript
             if ((cachedPropertyNames == null) ||
                 (targetDynamic != null) ||
                 (targetPropertyBag != null) ||
+                (targetJToken != null) ||
                 (targetDynamicMetaObject != null) ||
                 ((targetList != null) && (cachedListCount != targetList.Count)))
             {
@@ -791,8 +796,9 @@ namespace Microsoft.ClearScript
         }
 
 
-        private object InvokeJTokenMember(string name, BindingFlags invokeFlags, object[] args, object[] bindArgs)
+        private object InvokeJTokenMember(string name, BindingFlags invokeFlags, object[] args, object[] bindArgs, CultureInfo culture, out bool isCacheable)
         {
+            isCacheable = false;
             object retValue = null;
             var jVal = targetJToken as JValue;
             JArray jArray = null;
@@ -847,6 +853,12 @@ namespace Microsoft.ClearScript
                         }
                     }
                 }
+                if (retValue == null)
+                {
+                    
+                    retValue =  GetHostProperty(name, invokeFlags, args, bindArgs, CultureInfo.InvariantCulture, out isCacheable);
+                    
+                }
                 return retValue;
             }
             else if (invokeFlags.HasFlag(BindingFlags.SetField) || invokeFlags.HasFlag(BindingFlags.SetProperty))
@@ -865,6 +877,21 @@ namespace Microsoft.ClearScript
                 }
                 
                 return args[0];
+            }
+            else if (invokeFlags.HasFlag(BindingFlags.InvokeMethod))
+            {
+                object result;
+                if (InvokeHelpers.TryInvokeObject(engine, target, invokeFlags, args, bindArgs, targetDynamicMetaObject != null, out result))
+                {
+                    return result;
+                }
+                if (thisExpando.GetMethods(GetMethodBindFlags()).Any(method => method.Name == name))
+                {
+                    return InvokeMethod(name, args, bindArgs);
+                }
+                //bool isCacheable;
+                //var method =GetHostProperty(name, invokeFlags, args, bindArgs, CultureInfo.InvariantCulture, out isCacheable);
+
             }
            
             throw new InvalidOperationException("Invalid member invocation mode");
