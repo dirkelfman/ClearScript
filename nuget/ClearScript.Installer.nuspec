@@ -3,7 +3,7 @@
     <metadata>
         <id>ClearScript.Installer</id>
         <version>$version$</version>
-        <title>ClearScript.Installer</title>
+        <title>ClearScript.Installer $sha$</title>
         <authors>eric_swann</authors>
         <owners>eric_swann</owners>
         <projectUrl>https://github.com/eswann/ClearScript.Installer</projectUrl>
@@ -12,7 +12,7 @@
         <summary>ClearScript Installer encapsulates everything needed to properly add ClearScript 5.4 to your project using the V8 engine.</summary>
         <copyright>Copyright 2014 Eric Swann, et. al. - All rights reserved.</copyright>
         <language/>
-        <tags>ClearScript V8 JavaScript</tags>
+        <tags>ClearScript V8 JavaScript $sha$</tags>
         <dependencies/>
     </metadata>
     <files>
@@ -20,17 +20,11 @@
         <file src="Web.config.uninstall.xdt" target="content"/>
         <file src="ClearScript.Installer.targets" target="build"/>
         <file src="..\bin\release\ClearScript.dll" target="lib\net45"/>
+        <file src="..\bin\release\ClearScript.pdb" target="lib\net45"/>
         <file src="..\bin\release\ClearScriptV8-32.dll" target="tools/native"/>
         <file src="..\bin\release\ClearScriptV8-64.dll" target="tools/native"/>
         <file src="..\bin\release\v8-ia32.dll" target="tools/native"/>
         <file src="..\bin\release\v8-x64.dll" target="tools/native"/>
         
-
-
-   <!--       <file src="..\..\lib\ClearScript.pdb" target="lib\net45"/>
-         <file src="..\..\lib\v8-x64.pdb" target="tools/native"/>
-             <file src="..\..\lib\v8-ia32.pdb" target="tools/native"/>
-                 <file src="..\..\lib\ClearScriptV8-64.pdb" target="tools/native"/>
-                    <file src="..\..\lib\ClearScriptV8-32.pdb" target="tools/native"/> -->
     </files>
 </package>
