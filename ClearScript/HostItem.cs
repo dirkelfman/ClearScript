@@ -806,7 +806,15 @@ namespace Microsoft.ClearScript
             {
                 if (jVal != null)
                 {
+                    var member = jVal.Value.GetType().GetMembers().FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    if (member == null)
+                    {
+                        return Undefined.Value;
+                    }
                     retValue = jVal.Value.GetType().InvokeMember(name, invokeFlags, null, jVal.Value, args);
+              
+
+                    //retValue = jVal.Value.GetType().InvokeMember(name, invokeFlags, null, jVal.Value, args);
                 }
                 else
                 {

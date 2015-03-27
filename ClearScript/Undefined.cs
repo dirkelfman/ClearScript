@@ -71,7 +71,10 @@ namespace Microsoft.ClearScript
     /// </remarks>
     public class Undefined
     {
-        internal static readonly Undefined Value = new Undefined();
+        /// <summary>
+        /// undefined
+        /// </summary>
+        public static readonly Undefined Value = new Undefined();
 
         private Undefined()
         {
