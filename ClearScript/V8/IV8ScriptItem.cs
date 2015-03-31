@@ -116,6 +116,10 @@ namespace Microsoft.ClearScript.V8
                     {
                         continue;
                     }
+                    if (item is Microsoft.ClearScript.HostMethod)
+                    {
+                        continue;
+                    }
                     obj[pname] = item is Undefined ? null : item;
                 }
                 serializer.Serialize(writer, obj, obj.GetType());
