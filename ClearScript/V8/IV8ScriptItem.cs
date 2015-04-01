@@ -43,7 +43,23 @@ namespace Microsoft.ClearScript.V8
         /// <summary>
         /// fn
         /// </summary>
-        jsFunction=3
+        jsFunction=3,
+        /// <summary>
+        /// fn
+        /// </summary>
+        jsNull=4,
+        /// <summary>
+        /// fn
+        /// </summary>
+        jsUndefined = 5,
+        /// <summary>
+        /// fn
+        /// </summary>
+        jsArguments = 6,
+        /// <summary>
+        /// fn
+        /// </summary>
+        jsError = 7,
     }
     /// <summary>
     /// blurp
@@ -87,7 +103,7 @@ namespace Microsoft.ClearScript.V8
         {
             var v8Item = value as V8ScriptItem;
             var jsType = v8Item.GetJsType();
-            if (jsType == JsTypes.JsArray)
+            if (jsType == JsTypes.JsArray || jsType == JsTypes.jsArguments)
             {
                 
              //   serializer.Serialize(writer, value, typeof(object[]));
@@ -105,6 +121,27 @@ namespace Microsoft.ClearScript.V8
                 }
                 serializer.Serialize(writer, obj, obj.GetType());
                 
+            }
+            else if (jsType == JsTypes.jsError)
+            {
+                Dictionary<string, object> obj = new Dictionary<string, object>();
+                obj["message"] = v8Item.GetProperty("message") as string;
+                obj["stack"] = v8Item.GetProperty("stack") as string;
+                foreach (var pname in v8Item.GetPropertyNames())
+                {
+                    var item = v8Item.GetProperty(pname);
+                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+                    {
+                        continue;
+                    }
+                    if (item is Microsoft.ClearScript.HostMethod)
+                    {
+                        continue;
+                    }
+                    obj[pname] = item is Undefined ? null : item;
+                }
+         
+                serializer.Serialize(writer, obj, obj.GetType());
             }
             else if (jsType == JsTypes.JsObject )
             {

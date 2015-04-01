@@ -6,9 +6,8 @@
 	<system.web>
 		<compilation >
 			<assemblies >
-				<remove xdt:Transform="Insert" assembly="ClearScriptV8-32"/>
-				<remove xdt:Transform="Insert" assembly="ClearScriptV8-64"/>
-
+				<remove xdt:Transform="Insert" assembly="ClearScriptV8-32" xdt:Locator="Match(assembly)"/>
+				<remove xdt:Transform="Insert" assembly="ClearScriptV8-64" xdt:Locator="Match(assembly)"/>
 			</assemblies>
 		</compilation>
 	</system.web>
