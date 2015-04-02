@@ -7,6 +7,9 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Converters;
 using System.Globalization;
+using System.Threading.Tasks;
+using System.IO;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.ClearScript.V8
 {
@@ -93,6 +96,40 @@ namespace Microsoft.ClearScript.V8
     /// </summary>
     public class V8ScriptItemConverter : JsonConverter
     {
+
+        bool ShouleSerialize(object item, out object ret)
+        {
+            ret = item;
+            if (item == null)
+            {
+                return true;
+            }
+            if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+            {
+                ret = null;
+                return false;
+            }
+            if (item is Microsoft.ClearScript.HostMethod)
+            {
+                ret = null;
+                return false;
+            }
+            if (item is Task)
+            {
+                ret = null;
+                return false;
+            }
+            if (item is Undefined)
+            {
+                ret = null;
+            }
+            if (item is Delegate)
+            {
+                ret = null;
+                return false;
+            }
+            return true;
+        }
         /// <summary>
         /// Writes the JSON representation of the object.
         /// </summary>
@@ -103,26 +140,8 @@ namespace Microsoft.ClearScript.V8
         {
             var v8Item = value as V8ScriptItem;
             var jsType = v8Item.GetJsType();
-            if (jsType == JsTypes.JsArray || jsType == JsTypes.jsArguments)
-            {
-                
-             //   serializer.Serialize(writer, value, typeof(object[]));
-               
-                int len = (int)v8Item.GetProperty("length");
-                var obj = new object[len];
-                for (int i = 0; i < len; i++)
-                {
-                    var item= v8Item.GetProperty(i.ToString());
-                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
-                    {
-                        continue;
-                    }
-                    obj[i] = item is Undefined ? null : item;
-                }
-                serializer.Serialize(writer, obj, obj.GetType());
-                
-            }
-            else if (jsType == JsTypes.jsError)
+            object outObj;
+            if (jsType == JsTypes.jsError)
             {
                 Dictionary<string, object> obj = new Dictionary<string, object>();
                 obj["message"] = v8Item.GetProperty("message") as string;
@@ -130,42 +149,49 @@ namespace Microsoft.ClearScript.V8
                 foreach (var pname in v8Item.GetPropertyNames())
                 {
                     var item = v8Item.GetProperty(pname);
-                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+                    if (ShouleSerialize(item, out outObj))
                     {
-                        continue;
+                        obj[pname] = outObj;
                     }
-                    if (item is Microsoft.ClearScript.HostMethod)
-                    {
-                        continue;
-                    }
-                    obj[pname] = item is Undefined ? null : item;
+                   
                 }
          
                 serializer.Serialize(writer, obj, obj.GetType());
             }
-            else if (jsType == JsTypes.JsObject )
+            else if (jsType == JsTypes.JsObject || jsType == JsTypes.JsArray)
             {
-                Dictionary<string,object> obj = new Dictionary<string, object>();
-                foreach (var pname in v8Item.GetPropertyNames())
+                
+                try
                 {
-                    var item=v8Item.GetProperty(pname);
-                    if (item is V8ScriptItem && ((V8ScriptItem)item).GetJsType() == JsTypes.jsFunction)
+                    var json = v8Item.Engine.Script.JSON.stringify(v8Item);
+                    writer.WriteRaw(json);
+
+
+                    if (writer is JTokenWriter)
                     {
-                        continue;
+                        var tw = new StringReader(json);
+                        var jsonReader = new JsonTextReader(tw);
+
+                        writer.WriteToken(jsonReader);
+
                     }
-                    if (item is Microsoft.ClearScript.HostMethod)
+                    else
                     {
-                        continue;
+                        writer.WriteRaw(json);
                     }
-                    obj[pname] = item is Undefined ? null : item;
                 }
-                serializer.Serialize(writer, obj, obj.GetType());
+                catch (Exception)
+                {
+                    
+                    throw;
+                }
+                
+                
             }
             else if (jsType == JsTypes.JsDate)
             {
                 var dateString = (string)v8Item.InvokeMethod("toISOString", new object[0]);
                 DateTime dt = DateTime.Parse(dateString);
-
                 serializer.Serialize(writer, dt, dt.GetType());
             }
             else
