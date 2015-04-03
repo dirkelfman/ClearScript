@@ -164,9 +164,7 @@ namespace Microsoft.ClearScript.V8
                 try
                 {
                     var json = v8Item.Engine.Script.JSON.stringify(v8Item);
-                    writer.WriteRaw(json);
-
-
+                    
                     if (writer is JTokenWriter)
                     {
                         var tw = new StringReader(json);
