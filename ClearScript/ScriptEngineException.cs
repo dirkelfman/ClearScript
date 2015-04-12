@@ -81,7 +81,7 @@ namespace Microsoft.ClearScript
         private const string isFatalItemName = "IsFatal";
 
         private const string defaultMessage = "An error occurred during script execution";
-
+        private readonly object error ;
         #region constructors
 
         /// <summary>
@@ -130,6 +130,19 @@ namespace Microsoft.ClearScript
         internal ScriptEngineException(string engineName, string message, string errorDetails, int errorCode, bool isFatal, Exception innerException)
             : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
         {
+            this.engineName = engineName;
+            this.errorDetails = MiscHelpers.EnsureNonBlank(errorDetails, base.Message);
+            this.isFatal = isFatal;
+
+            if (errorCode != 0)
+            {
+                HResult = errorCode;
+            }
+        }
+        internal ScriptEngineException(string engineName, string message, string errorDetails, int errorCode, bool isFatal, Exception innerException, object error)
+            : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
+        {
+            this.error = error;
             this.engineName = engineName;
             this.errorDetails = MiscHelpers.EnsureNonBlank(errorDetails, base.Message);
             this.isFatal = isFatal;
@@ -194,5 +207,17 @@ namespace Microsoft.ClearScript
         }
 
         #endregion
+        
+        
+
+        /// <summary>
+        /// Get the script error
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <returns></returns>
+        public object MarshalScriptError(ScriptEngine engine)
+        {
+            return engine.MarshalToHost(error, false);
+        }
     }
 }

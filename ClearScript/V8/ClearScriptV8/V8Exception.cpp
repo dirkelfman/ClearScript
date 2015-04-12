@@ -74,16 +74,17 @@ void DECLSPEC_NORETURN V8Exception::ThrowScriptEngineException() const
     auto gcMessage = m_Message.ToManagedString();
     auto gcStackTrace = m_StackTrace.ToManagedString();
     auto gcInnerException = V8ProxyHelpers::MarshalExceptionToHost(V8ContextProxyImpl::ExportValue(m_InnerException));
-
+	auto gcErrorObject = V8ContextProxyImpl::ExportValue(m_ErrorObject);
+		
     switch (m_Type)
     {
         case Type_General: default:
-            throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException);
+			throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException, gcErrorObject);
 
         case Type_Fatal:
-            throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, true, gcInnerException);
+			throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, true, gcInnerException);
 
         case Type_Interrupt:
-            throw gcnew ScriptInterruptedException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException);
+			throw gcnew ScriptInterruptedException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException);
     }
 }

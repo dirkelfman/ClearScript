@@ -130,6 +130,40 @@ namespace Microsoft.ClearScript.Test
 
 
 
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_ThrowErrorWithStuff()
+        {
+            object error = engine.Evaluate("var error = new Error('hey');error.prop1='zeebra';error;");
+
+            try
+            {
+                engine.Execute("throw error;");
+            }
+            catch (Microsoft.ClearScript.ScriptEngineException ex)
+            {
+                var scriptError = (dynamic)ex.MarshalScriptError(engine);
+                Assert.AreEqual("zeebra", scriptError.prop1);
+                var stack = scriptError.stack;
+                Assert.IsNotNull(stack);
+            }
+           
+  
+            try
+            {
+                engine.Execute("function MyError(message) { this.name = 'MyError';  this.fart = 'Default Message';}MyError.prototype = Object.create(Error.prototype);MyError.prototype.constructor = MyError;throw new MyError('steve');");
+            }
+            catch (Microsoft.ClearScript.ScriptEngineException ex)
+            {
+                var scriptError = (dynamic)ex.MarshalScriptError(engine);
+                var jtoken = JToken.FromObject(scriptError);
+                Assert.IsNotNull(jtoken);
+                Assert.AreEqual(ex != null, true);
+          
+            }
+
+       
+        }
+
 
       
         [TestMethod, TestCategory("V8ScriptEngine")]

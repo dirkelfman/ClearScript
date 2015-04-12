@@ -539,14 +539,14 @@ V8Value V8ContextImpl::InvokeV8ObjectMethod(void* pvObject, const StdString& nam
         if (!hObject->Has(hName))
         {
             auto hError = Exception::TypeError(CreateString(StdString(L"Method or property not found")))->ToObject();
-            throw V8Exception(V8Exception::Type_General, m_Name, StdString(hError), StdString(hError->Get(CreateString(StdString(L"stack")))), V8Value(V8Value::Undefined));
+			throw V8Exception(V8Exception::Type_General, m_Name, StdString(hError), StdString(hError->Get(CreateString(StdString(L"stack")))), V8Value(V8Value::Undefined), V8Value(V8Value::Undefined));
         }
 
         auto hValue = hObject->Get(hName);
         if (hValue->IsUndefined() || hValue->IsNull())
         {
             auto hError = Exception::TypeError(CreateString(StdString(L"Property value does not support invocation")))->ToObject();
-            throw V8Exception(V8Exception::Type_General, m_Name, StdString(hError), StdString(hError->Get(CreateString(StdString(L"stack")))), V8Value(V8Value::Undefined));
+			throw V8Exception(V8Exception::Type_General, m_Name, StdString(hError), StdString(hError->Get(CreateString(StdString(L"stack")))), V8Value(V8Value::Undefined), V8Value(V8Value::Undefined));
         }
 
         std::vector<Handle<Value>> importedArgs;
@@ -1460,7 +1460,7 @@ void V8ContextImpl::Verify(const TryCatch& tryCatch)
         if (!tryCatch.CanContinue())
         {
             VerifyNotOutOfMemory();
-            throw V8Exception(V8Exception::Type_Interrupt, m_Name, StdString(L"Script execution interrupted by host"), StdString(tryCatch.StackTrace()), V8Value(V8Value::Undefined));
+			throw V8Exception(V8Exception::Type_Interrupt, m_Name, StdString(L"Script execution interrupted by host"), StdString(tryCatch.StackTrace()), V8Value(V8Value::Undefined), V8Value(V8Value::Undefined));
         }
 
         auto hException = tryCatch.Exception();
@@ -1505,7 +1505,7 @@ void V8ContextImpl::Verify(const TryCatch& tryCatch)
 
         StdString stackTrace;
         V8Value hostException(V8Value::Undefined);
-
+		V8Value scriptError(V8Value::Undefined);
         if (stackOverflow)
         {
             stackTrace = message;
@@ -1627,11 +1627,12 @@ void V8ContextImpl::Verify(const TryCatch& tryCatch)
 
             if (hException->IsObject())
             {
+				scriptError = ExportValue(hException->ToObject());
                 hostException = ExportValue(hException->ToObject()->Get(m_hHostExceptionName));
             }
         }
 
-        throw V8Exception(V8Exception::Type_General, m_Name, std::move(message), std::move(stackTrace), std::move(hostException));
+		throw V8Exception(V8Exception::Type_General, m_Name, std::move(message), std::move(stackTrace), std::move(hostException), std::move(scriptError));
     }
 }
 

@@ -80,16 +80,18 @@ public:
         m_Type(type),
         m_EngineName(engineName),
         m_Message(std::move(message)),
-        m_InnerException(V8Value::Undefined)
+        m_InnerException(V8Value::Undefined),
+		m_ErrorObject(V8Value::Undefined)
     {
     }
 
-    V8Exception(Type type, const StdString& engineName, StdString&& message, StdString&& stackTrace, V8Value&& innerException):
+	V8Exception(Type type, const StdString& engineName, StdString&& message, StdString&& stackTrace, V8Value&& innerException, V8Value&& errorObject) :
         m_Type(type),
         m_EngineName(engineName),
         m_Message(std::move(message)),
         m_StackTrace(std::move(stackTrace)),
-        m_InnerException(std::move(innerException))
+        m_InnerException(std::move(innerException)),
+		m_ErrorObject(std::move(errorObject))
     {
     }
 
@@ -102,4 +104,5 @@ private:
     StdString m_Message;
     StdString m_StackTrace;
     V8Value m_InnerException;
+	V8Value m_ErrorObject;
 };
