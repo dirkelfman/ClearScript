@@ -127,18 +127,18 @@ namespace Microsoft.ClearScript
             isFatal = info.GetBoolean(isFatalItemName);
         }
 
-        internal ScriptEngineException(string engineName, string message, string errorDetails, int errorCode, bool isFatal, Exception innerException)
-            : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
-        {
-            this.engineName = engineName;
-            this.errorDetails = MiscHelpers.EnsureNonBlank(errorDetails, base.Message);
-            this.isFatal = isFatal;
+        //internal ScriptEngineException(string engineName, string message, string errorDetails, int errorCode, bool isFatal, Exception innerException)
+        //    : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
+        //{
+        //    this.engineName = engineName;
+        //    this.errorDetails = MiscHelpers.EnsureNonBlank(errorDetails, base.Message);
+        //    this.isFatal = isFatal;
 
-            if (errorCode != 0)
-            {
-                HResult = errorCode;
-            }
-        }
+        //    if (errorCode != 0)
+        //    {
+        //        HResult = errorCode;
+        //    }
+        //}
         internal ScriptEngineException(string engineName, string message, string errorDetails, int errorCode, bool isFatal, Exception innerException, object error)
             : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
         {
@@ -187,6 +187,14 @@ namespace Microsoft.ClearScript
         public bool IsFatal
         {
             get { return isFatal; }
+        }
+
+        /// <summary>
+        /// Gets the imple of the script error.
+        /// </summary>
+        public object ScriptError
+        {
+            get { return error; }
         }
 
         #endregion

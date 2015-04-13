@@ -82,9 +82,9 @@ void DECLSPEC_NORETURN V8Exception::ThrowScriptEngineException() const
 			throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException, gcErrorObject);
 
         case Type_Fatal:
-			throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, true, gcInnerException);
+			throw gcnew ScriptEngineException(gcEngineName, gcMessage, gcStackTrace, 0, true, gcInnerException, gcErrorObject);
 
         case Type_Interrupt:
-			throw gcnew ScriptInterruptedException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException);
+			throw gcnew ScriptInterruptedException(gcEngineName, gcMessage, gcStackTrace, 0, false, gcInnerException, gcErrorObject);
     }
 }

@@ -94,6 +94,12 @@ namespace Microsoft.ClearScript
         bool IsFatal { get; }
 
         /// <summary>
+        /// Gets the imple of the script error.
+        /// </summary>
+        object ScriptError{ get; }
+       
+
+        /// <summary>
         /// Gets the exception that caused the current exception to be thrown, or <c>null</c> if one was not specified.
         /// </summary>
         Exception InnerException { get; }

@@ -723,7 +723,7 @@ namespace Microsoft.ClearScript.Windows
                     var hostException = CurrentScriptFrame.HostException;
                     if (hostException != null)
                     {
-                        throw new ScriptEngineException(Name, hostException.Message, null, RawCOMHelpers.HResult.CLEARSCRIPT_E_SCRIPTITEMEXCEPTION, false, hostException);
+                        throw new ScriptEngineException(Name, hostException.Message, null, RawCOMHelpers.HResult.CLEARSCRIPT_E_SCRIPTITEMEXCEPTION, false, hostException, null);
                     }
                 }
             }
