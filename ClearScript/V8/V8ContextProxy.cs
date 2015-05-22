@@ -95,5 +95,7 @@ namespace Microsoft.ClearScript.V8
         public abstract void CollectGarbage(bool exhaustive);
 
         public abstract void WriteHeapSnapshot(string fileName);
+
+        public abstract void OnAccessSettingsChanged();
     }
 }

@@ -95,6 +95,7 @@ namespace Microsoft.ClearScript.V8
         private const int continuationInterval = 2000;
         private bool inContinuationTimerScope;
 
+        private readonly HostItemCollateral hostItemCollateral;
         private readonly IUniqueNameManager documentNameManager = new UniqueFileNameManager();
         private List<string> documentNames;
 
@@ -264,6 +265,7 @@ namespace Microsoft.ClearScript.V8
             using (var localRuntime = (runtime != null) ? null : new V8Runtime(name, constraints))
             {
                 var activeRuntime = runtime ?? localRuntime;
+                hostItemCollateral = activeRuntime.HostItemCollateral;
 
                 engineFlags = flags;
                 proxy = V8ContextProxy.Create(activeRuntime.IsolateProxy, Name, flags.HasFlag(V8ScriptEngineFlags.EnableDebugging), flags.HasFlag(V8ScriptEngineFlags.DisableGlobalMembers), debugPort);
@@ -553,6 +555,25 @@ namespace Microsoft.ClearScript.V8
 
         // ReSharper restore ParameterHidesMember
 
+        private void OnContinuationTimer(Timer timer)
+        {
+            try
+            {
+                var callback = ContinuationCallback;
+                if ((callback != null) && !callback())
+                {
+                    Interrupt();
+                }
+                else
+                {
+                    timer.Change(continuationInterval, Timeout.Infinite);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
         #endregion
 
         #region ScriptEngine overrides (public members)
@@ -809,23 +830,15 @@ namespace Microsoft.ClearScript.V8
             });
         }
 
-        private void OnContinuationTimer(Timer timer)
+        internal override HostItemCollateral HostItemCollateral
         {
-            try
-            {
-                var callback = ContinuationCallback;
-                if ((callback != null) && !callback())
-                {
-                    Interrupt();
-                }
-                else
-                {
-                    timer.Change(continuationInterval, Timeout.Infinite);
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-            }
+            get { return hostItemCollateral; }
+        }
+
+        internal override void OnAccessSettingsChanged()
+        {
+            base.OnAccessSettingsChanged();
+            ScriptInvoke(() => proxy.OnAccessSettingsChanged());
         }
 
         #endregion
@@ -850,7 +863,7 @@ namespace Microsoft.ClearScript.V8
 
         #endregion
 
-        #region ScriptEngine overrides (disposition / finalization)
+        #region ScriptEngine overrides (disposal / finalization)
 
         /// <summary>
         /// Releases the unmanaged resources used by the script engine and optionally releases the managed resources.

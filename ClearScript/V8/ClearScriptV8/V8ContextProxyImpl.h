@@ -103,6 +103,7 @@ namespace V8 {
         virtual V8RuntimeHeapInfo^ GetRuntimeHeapInfo() override;
         virtual void CollectGarbage(bool exhaustive) override;
 		virtual void WriteHeapSnapshot(String^ filename) override;
+        virtual void OnAccessSettingsChanged() override;
 
         ~V8ContextProxyImpl();
         !V8ContextProxyImpl();

@@ -128,6 +128,12 @@ namespace Microsoft.ClearScript.V8
                 ret = null;
                 return false;
             }
+            if (item is System.Reflection.MemberInfo)
+            {
+                ret = null;
+                return false;
+            }
+            
             return true;
         }
         /// <summary>
