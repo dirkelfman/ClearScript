@@ -75,13 +75,16 @@ namespace Microsoft.ClearScript.Util
 
         static AssemblyHelpers()
         {
-            LoadAssemblyTable();
-            if (table != null)
-            {
-                AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => table.TryAdd(args.LoadedAssembly.GetName().Name, args.LoadedAssembly.FullName);
-                AppDomain.CurrentDomain.GetAssemblies().ForEach(assembly => table.TryAdd(assembly.GetName().Name, assembly.FullName));
-            }
+            //LoadAssemblyTable();
+            //if (table != null)
+            //{
+            //    AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => table.TryAdd(args.LoadedAssembly.GetName().Name, args.LoadedAssembly.FullName);
+            //    AppDomain.CurrentDomain.GetAssemblies().ForEach(assembly => table.TryAdd(assembly.GetName().Name, assembly.FullName));
+            //}
         }
+
+
+
 
         public static string GetFullAssemblyName(string name)
         {
@@ -107,7 +110,7 @@ namespace Microsoft.ClearScript.Util
                     dirPath = Path.Combine(dirPath, "Microsoft", "ClearScript", Environment.Is64BitProcess ? "x64" : "x86", GetRuntimeVersionDirectoryName());
                     Directory.CreateDirectory(dirPath);
 
-                    filePath = Path.Combine(dirPath, "AssemblyTable.bin");
+                    filePath = Path.Combine(dirPath, "AssemblyTable.bin2");
                     if (File.Exists(filePath))
                     {
                         try
@@ -127,7 +130,7 @@ namespace Microsoft.ClearScript.Util
             catch (Exception)
             {
             }
-
+            table = new ConcurrentDictionary<string, string>();
             if (table == null)
             {
                 BuildAssemblyTable();
