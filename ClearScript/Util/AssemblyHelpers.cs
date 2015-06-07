@@ -71,24 +71,34 @@ namespace Microsoft.ClearScript.Util
 {
     internal static class AssemblyHelpers
     {
+        private static object _lockObject = new object();
         private static ConcurrentDictionary<string, string> table;
 
-        static AssemblyHelpers()
-        {
-            //LoadAssemblyTable();
-            //if (table != null)
-            //{
-            //    AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => table.TryAdd(args.LoadedAssembly.GetName().Name, args.LoadedAssembly.FullName);
-            //    AppDomain.CurrentDomain.GetAssemblies().ForEach(assembly => table.TryAdd(assembly.GetName().Name, assembly.FullName));
-            //}
+        
+        public  static void InitializeAssemblyTable(){
+            LoadAssemblyTable();
+            if (table != null)
+            {
+                AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => table.TryAdd(args.LoadedAssembly.GetName().Name, args.LoadedAssembly.FullName);
+                AppDomain.CurrentDomain.GetAssemblies().ForEach(assembly => table.TryAdd(assembly.GetName().Name, assembly.FullName));
+            }
+            Lazy<string> l = new Lazy<string>();
         }
-
-
 
 
         public static string GetFullAssemblyName(string name)
         {
             string fullName;
+            if ( table == null )
+            {
+                lock (_lockObject)
+                {
+                    if ( table == null )
+                    {
+                        InitializeAssemblyTable();
+                    }
+                }
+            }
             return ((table != null) && table.TryGetValue(name, out fullName)) ? fullName : name;
         }
 
@@ -110,7 +120,7 @@ namespace Microsoft.ClearScript.Util
                     dirPath = Path.Combine(dirPath, "Microsoft", "ClearScript", Environment.Is64BitProcess ? "x64" : "x86", GetRuntimeVersionDirectoryName());
                     Directory.CreateDirectory(dirPath);
 
-                    filePath = Path.Combine(dirPath, "AssemblyTable.bin2");
+                    filePath = Path.Combine(dirPath, "AssemblyTable.bin");
                     if (File.Exists(filePath))
                     {
                         try
