@@ -195,7 +195,7 @@ namespace Microsoft.ClearScript.V8
             else if (jsType == JsTypes.JsDate)
             {
                 var dateString = (string)v8Item.InvokeMethod("toISOString", new object[0]);
-                DateTime dt = DateTime.Parse(dateString);
+                DateTime dt = DateTime.Parse(dateString, DateTimeFormatInfo.CurrentInfo, DateTimeStyles.RoundtripKind);
                 serializer.Serialize(writer, dt, dt.GetType());
             }
             else
