@@ -1613,6 +1613,22 @@ namespace Microsoft.ClearScript
                 return value;
             }
 
+            //todo make this config or a settable  func..
+            if (args != null && args.Length == 1 && args[0] is ScriptItem)
+            {
+               
+                try
+                {
+                    var jobj = Newtonsoft.Json.Linq.JToken.FromObject(args[0]);
+                    var coersedItem = jobj.ToObject(property.PropertyType);
+                    property.SetValue(target.InvokeTarget, coersedItem, invokeFlags, Type.DefaultBinder, args.Take(args.Length - 1).ToArray(), culture);
+                    return value;
+                }
+                catch (Exception e){
+                    System.Diagnostics.Debug.WriteLine(e);
+                }
+                
+            }
             throw new ArgumentException("Invalid property assignment");
         }
 
