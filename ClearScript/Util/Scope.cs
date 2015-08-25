@@ -59,20 +59,87 @@
 //       fitness for a particular purpose and non-infringement.
 //       
 
-#include "ClearScriptV8Native.h"
+using System;
 
-//-----------------------------------------------------------------------------
-// V8Isolate implementation
-//-----------------------------------------------------------------------------
-
-V8Isolate* V8Isolate::Create(const StdString& name, const V8IsolateConstraints* pConstraints, bool enableDebugging, int debugPort)
+namespace Microsoft.ClearScript.Util
 {
-    return new V8IsolateImpl(name, pConstraints, enableDebugging, debugPort);
-}
+    internal interface IScope<out T>: IDisposable
+    {
+        T Value { get; }
+    }
 
-//-----------------------------------------------------------------------------
+    internal static class Scope
+    {
+        public static IDisposable Create(Action enterAction, Action exitAction)
+        {
+            return new ScopeImpl(enterAction, exitAction);
+        }
 
-size_t V8Isolate::GetInstanceCount()
-{
-    return V8IsolateImpl::GetInstanceCount();
+        public static IScope<T> Create<T>(Func<T> enterFunc, Action<T> exitAction)
+        {
+            return new ScopeImpl<T>(enterFunc, exitAction);
+        }
+
+        #region Nested type: ScopeImpl
+
+        private class ScopeImpl : IDisposable
+        {
+            private readonly Action exitAction;
+            private DisposedFlag disposedFlag = new DisposedFlag();
+
+            public ScopeImpl(Action enterAction, Action exitAction)
+            {
+                this.exitAction = exitAction;
+                enterAction();
+            }
+
+            #region IDisposable implementation
+
+            public void Dispose()
+            {
+                if (disposedFlag.Set() && (exitAction != null))
+                {
+                    exitAction();
+                }
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Nested type: ScopeImpl<T>
+
+        private class ScopeImpl<T> : IScope<T>
+        {
+            private readonly T value;
+            private readonly Action<T> exitAction;
+            private DisposedFlag disposedFlag = new DisposedFlag();
+
+            public ScopeImpl(Func<T> enterFunc, Action<T> exitAction)
+            {
+                this.exitAction = exitAction;
+                value = enterFunc();
+            }
+
+            #region IScope<T> implementation
+
+            public T Value
+            {
+                get { return value; }
+            }
+
+            public void Dispose()
+            {
+                if (disposedFlag.Set() && (exitAction != null))
+                {
+                    exitAction(value);
+                }
+            }
+
+            #endregion
+        }
+
+        #endregion
+    }
 }

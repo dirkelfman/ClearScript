@@ -59,20 +59,22 @@
 //       fitness for a particular purpose and non-infringement.
 //       
 
-#include "ClearScriptV8Native.h"
-
-//-----------------------------------------------------------------------------
-// V8Isolate implementation
-//-----------------------------------------------------------------------------
-
-V8Isolate* V8Isolate::Create(const StdString& name, const V8IsolateConstraints* pConstraints, bool enableDebugging, int debugPort)
+namespace Microsoft.ClearScript.V8
 {
-    return new V8IsolateImpl(name, pConstraints, enableDebugging, debugPort);
-}
+    internal class V8ProxyCounters
+    {
+        public ulong IsolateCount { get; set; }
 
-//-----------------------------------------------------------------------------
+        public ulong ContextCount { get; set; }
+    }
 
-size_t V8Isolate::GetInstanceCount()
-{
-    return V8IsolateImpl::GetInstanceCount();
+    internal abstract class V8TestProxy : V8Proxy
+    {
+        public static V8TestProxy Create()
+        {
+            return CreateImpl<V8TestProxy>();
+        }
+
+        public abstract V8ProxyCounters GetCounters();
+    }
 }

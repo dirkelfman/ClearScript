@@ -93,7 +93,7 @@ namespace Microsoft.ClearScript
 
         #endregion
 
-        #region Nested type : CollateralObject
+        #region Nested type : CollateralObject<T>
 
         public class CollateralObject<T> : CollateralObject<HostItem, T> where T : class
         {

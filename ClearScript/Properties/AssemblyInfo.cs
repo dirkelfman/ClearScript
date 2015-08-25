@@ -75,5 +75,5 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("ClearScriptTest")]
 
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("5.4.*")]
+[assembly: AssemblyVersion("5.4.3.*")]
 

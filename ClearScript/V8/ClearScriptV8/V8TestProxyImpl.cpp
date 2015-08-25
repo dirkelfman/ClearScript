@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // 
 // Microsoft Public License (MS-PL)
@@ -59,20 +59,26 @@
 //       fitness for a particular purpose and non-infringement.
 //       
 
-#include "ClearScriptV8Native.h"
+#include "ClearScriptV8Managed.h"
 
-//-----------------------------------------------------------------------------
-// V8Isolate implementation
-//-----------------------------------------------------------------------------
+namespace Microsoft {
+namespace ClearScript {
+namespace V8 {
 
-V8Isolate* V8Isolate::Create(const StdString& name, const V8IsolateConstraints* pConstraints, bool enableDebugging, int debugPort)
-{
-    return new V8IsolateImpl(name, pConstraints, enableDebugging, debugPort);
-}
+    //-------------------------------------------------------------------------
+    // V8TestProxyImpl implementation
+    //-------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
+    V8ProxyCounters^ V8TestProxyImpl::GetCounters()
+    {
+        auto gcCounters = gcnew V8ProxyCounters();
+        gcCounters->IsolateCount = V8Isolate::GetInstanceCount();
+        gcCounters->ContextCount = V8Context::GetInstanceCount();
+        return gcCounters;
+    }
 
-size_t V8Isolate::GetInstanceCount()
-{
-    return V8IsolateImpl::GetInstanceCount();
-}
+    //-------------------------------------------------------------------------
+
+    ENSURE_INTERNAL_CLASS(V8TestProxyImpl)
+
+}}}

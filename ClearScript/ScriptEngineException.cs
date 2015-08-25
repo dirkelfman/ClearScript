@@ -90,6 +90,7 @@ namespace Microsoft.ClearScript
         public ScriptEngineException()
             : base(defaultMessage)
         {
+            // ReSharper disable once RedundantBaseQualifier
             errorDetails = base.Message;
         }
 
@@ -100,6 +101,7 @@ namespace Microsoft.ClearScript
         public ScriptEngineException(string message)
             : base(MiscHelpers.EnsureNonBlank(message, defaultMessage))
         {
+            // ReSharper disable once RedundantBaseQualifier
             errorDetails = base.Message;
         }
 
@@ -111,6 +113,7 @@ namespace Microsoft.ClearScript
         public ScriptEngineException(string message, Exception innerException)
             : base(MiscHelpers.EnsureNonBlank(message, defaultMessage), innerException)
         {
+            // ReSharper disable once RedundantBaseQualifier
             errorDetails = base.Message;
         }
 
@@ -144,6 +147,7 @@ namespace Microsoft.ClearScript
         {
             this.error = error;
             this.engineName = engineName;
+            // ReSharper disable once RedundantBaseQualifier
             this.errorDetails = MiscHelpers.EnsureNonBlank(errorDetails, base.Message);
             this.isFatal = isFatal;
 

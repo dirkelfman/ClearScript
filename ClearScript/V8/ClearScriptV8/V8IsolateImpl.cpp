@@ -67,14 +67,14 @@
 // V8Platform
 //-----------------------------------------------------------------------------
 
-class V8Platform: public Platform
+class V8Platform: public v8::Platform
 {
 public:
 
     static void EnsureInstalled();
 
-    virtual void CallOnBackgroundThread(Task* pTask, ExpectedRuntime runtime) override;
-    virtual void CallOnForegroundThread(Isolate* pIsolate, Task* pTask) override;
+    virtual void CallOnBackgroundThread(v8::Task* pTask, ExpectedRuntime runtime) override;
+    virtual void CallOnForegroundThread(v8::Isolate* pIsolate, v8::Task* pTask) override;
     virtual double MonotonicallyIncreasingTime() override;
 
 private:
@@ -91,22 +91,22 @@ void V8Platform::EnsureInstalled()
 {
     std::call_once(ms_InstallationFlag, []
     {
-        V8::InitializePlatform(&ms_Instance);
-        ASSERT_EVAL(V8::Initialize());
+        v8::V8::InitializePlatform(&ms_Instance);
+        ASSERT_EVAL(v8::V8::Initialize());
     });
 }
 
 //-----------------------------------------------------------------------------
 
-void V8Platform::CallOnBackgroundThread(Task* pTask, ExpectedRuntime /*runtime*/)
+void V8Platform::CallOnBackgroundThread(v8::Task* pTask, ExpectedRuntime /*runtime*/)
 {
-    std::shared_ptr<Task> spTask(pTask);
+    std::shared_ptr<v8::Task> spTask(pTask);
     Concurrency::create_task([spTask] { spTask->Run(); });
 }
 
 //-----------------------------------------------------------------------------
 
-void V8Platform::CallOnForegroundThread(Isolate* /*pIsolate*/, Task* /*pTask*/)
+void V8Platform::CallOnForegroundThread(v8::Isolate* /*pIsolate*/, v8::Task* /*pTask*/)
 {
     // unexpected call to unsupported method
     std::terminate();
@@ -134,7 +134,7 @@ std::once_flag V8Platform::ms_InstallationFlag;
 // V8ArrayBufferAllocator
 //-----------------------------------------------------------------------------
 
-class V8ArrayBufferAllocator: public ArrayBuffer::Allocator
+class V8ArrayBufferAllocator: public v8::ArrayBuffer::Allocator
 {
 public:
 
@@ -158,7 +158,7 @@ void V8ArrayBufferAllocator::EnsureInstalled()
 {
     std::call_once(ms_InstallationFlag, []
     {
-        V8::SetArrayBufferAllocator(&ms_Instance);
+        v8::V8::SetArrayBufferAllocator(&ms_Instance);
     });
 }
 
@@ -200,10 +200,18 @@ std::once_flag V8ArrayBufferAllocator::ms_InstallationFlag;
 
 #define BEGIN_ISOLATE_ENTRY_SCOPE \
     { \
-        Isolate::Scope t_IsolateEntryScope(m_pIsolate);
+        v8::Isolate::Scope t_IsolateEntryScope(m_pIsolate);
 
 #define END_ISOLATE_ENTRY_SCOPE \
         IGNORE_UNUSED(t_IsolateEntryScope); \
+    }
+
+#define BEGIN_ISOLATE_NATIVE_SCOPE \
+    { \
+        NativeScope t_IsolateNativeScope(this);
+
+#define END_ISOLATE_NATIVE_SCOPE \
+        IGNORE_UNUSED(t_IsolateNativeScope); \
     }
 
 #define BEGIN_ISOLATE_SCOPE \
@@ -218,10 +226,11 @@ std::once_flag V8ArrayBufferAllocator::ms_InstallationFlag;
 
 static const size_t s_StackBreathingRoom = static_cast<size_t>(16 * 1024);
 static size_t* const s_pMinStackLimit = reinterpret_cast<size_t*>(sizeof(size_t));
+static std::atomic<size_t> s_InstanceCount(0);
 
 //-----------------------------------------------------------------------------
 
-V8IsolateImpl::V8IsolateImpl(const StdString& name, const V8IsolateConstraints* pConstraints, bool enableDebugging, int debugPort):
+V8IsolateImpl::V8IsolateImpl(const StdString& name, const V8IsolateConstraints* pConstraints, bool enableDebugging, int debugPort) :
     m_Name(name),
     m_DebuggingEnabled(false),
     m_DebugMessageDispatchCount(0),
@@ -230,12 +239,13 @@ V8IsolateImpl::V8IsolateImpl(const StdString& name, const V8IsolateConstraints* 
     m_MaxStackUsage(0),
     m_StackWatchLevel(0),
     m_pStackLimit(nullptr),
-    m_IsOutOfMemory(false)
+    m_IsOutOfMemory(false),
+    m_IsExecutionTerminating(false)
 {
     V8Platform::EnsureInstalled();
     V8ArrayBufferAllocator::EnsureInstalled();
 
-    Isolate::CreateParams params;
+    v8::Isolate::CreateParams params;
     if (pConstraints != nullptr)
     {
         params.constraints.set_max_semi_space_size(pConstraints->GetMaxNewSpaceSize());
@@ -243,37 +253,40 @@ V8IsolateImpl::V8IsolateImpl(const StdString& name, const V8IsolateConstraints* 
         params.constraints.set_max_executable_size(pConstraints->GetMaxExecutableSize());
     }
 
-    m_pIsolate = Isolate::New(params);
+    m_pIsolate = v8::Isolate::New(params);
 
     BEGIN_ADDREF_SCOPE
 
         m_pIsolate->SetData(0, this);
 
         BEGIN_ISOLATE_ENTRY_SCOPE
-
-            V8::SetCaptureStackTraceForUncaughtExceptions(true, 64, StackTrace::kDetailed);
-
+            v8::V8::SetCaptureStackTraceForUncaughtExceptions(true, 64, v8::StackTrace::kDetailed);
         END_ISOLATE_ENTRY_SCOPE
 
         if (enableDebugging)
         {
             BEGIN_ISOLATE_SCOPE
-
                 EnableDebugging(debugPort);
-
             END_ISOLATE_SCOPE
         }
 
     END_ADDREF_SCOPE
+
+    ++s_InstanceCount;
+}
+
+//-----------------------------------------------------------------------------
+
+size_t V8IsolateImpl::GetInstanceCount()
+{
+    return s_InstanceCount;
 }
 
 //-----------------------------------------------------------------------------
 
 void V8IsolateImpl::AddContext(V8ContextImpl* pContextImpl, bool enableDebugging, int debugPort)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
-
+    _ASSERTE(IsCurrent() && IsLocked());
     if (!enableDebugging)
     {
         m_ContextPtrs.push_back(pContextImpl);
@@ -289,9 +302,7 @@ void V8IsolateImpl::AddContext(V8ContextImpl* pContextImpl, bool enableDebugging
 
 void V8IsolateImpl::RemoveContext(V8ContextImpl* pContextImpl)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
-
+    _ASSERTE(IsCurrent() && IsLocked());
     m_ContextPtrs.remove(pContextImpl);
 }
 
@@ -299,12 +310,10 @@ void V8IsolateImpl::RemoveContext(V8ContextImpl* pContextImpl)
 
 void V8IsolateImpl::EnableDebugging(int debugPort)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
-
+    _ASSERTE(IsCurrent() && IsLocked());
     if (!m_DebuggingEnabled)
     {
-        StdString version(String::NewFromUtf8(m_pIsolate, V8::GetVersion()));
+        StdString version(v8::String::NewFromUtf8(m_pIsolate, v8::V8::GetVersion()));
         if (debugPort < 1)
         {
             debugPort = 9222;
@@ -328,7 +337,7 @@ void V8IsolateImpl::EnableDebugging(int debugPort)
             }
         });
 
-        Debug::SetMessageHandler(OnDebugMessageShared);
+        v8::Debug::SetMessageHandler(OnDebugMessageShared);
 
         m_DebuggingEnabled = true;
         m_DebugPort = debugPort;
@@ -339,12 +348,10 @@ void V8IsolateImpl::EnableDebugging(int debugPort)
 
 void V8IsolateImpl::DisableDebugging()
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
-
+    _ASSERTE(IsCurrent() && IsLocked());
     if (m_DebuggingEnabled)
     {
-        Debug::SetMessageHandler(nullptr);
+        v8::Debug::SetMessageHandler(nullptr);
         HostObjectHelpers::DestroyDebugAgent(m_pvDebugAgent);
 
         m_DebuggingEnabled = false;
@@ -413,7 +420,7 @@ void V8IsolateImpl::GetHeapInfo(V8IsolateHeapInfo& heapInfo)
 {
     BEGIN_ISOLATE_SCOPE
 
-    HeapStatistics heapStatistics;
+    v8::HeapStatistics heapStatistics;
     m_pIsolate->GetHeapStatistics(&heapStatistics);
 
     heapInfo.Set(
@@ -488,17 +495,18 @@ void V8IsolateImpl::WriteHeapSnapshot(const char* filename)
 			throw std::exception(errorMsg);*/
 		}
 
-		HeapProfiler* profiler = m_pIsolate->GetHeapProfiler();
-		Local<String> heapName = String::NewFromUtf8(m_pIsolate, "'bob'");
-		const  HeapSnapshot* heapSnapShot = profiler->TakeHeapSnapshot(heapName);
+		v8::HeapProfiler* profiler = m_pIsolate->GetHeapProfiler();
+		v8::Local<v8::String> heapName = v8::String::NewFromUtf8(m_pIsolate, "'bob'");
+
+		const  v8::HeapSnapshot* heapSnapShot = profiler->TakeHeapSnapshot(NULL,NULL);
 		FileOutputStream stream(fp);
-		heapSnapShot->Serialize(&stream, HeapSnapshot::kJSON);
+		heapSnapShot->Serialize(&stream, v8::HeapSnapshot::kJSON);
 		fclose(fp);
 
-		// Work around a deficiency in the API.  The HeapSnapshot object is const
-		// but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
-		// invalidates _all_ snapshots, including those created by other tools.
-		const_cast<HeapSnapshot*>(heapSnapShot)->Delete();
+		 /*Work around a deficiency in the API.  The HeapSnapshot object is const
+		 but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
+		 invalidates _all_ snapshots, including those created by other tools.*/
+		const_cast<v8::HeapSnapshot*>(heapSnapShot)->Delete();
 		
 	END_ISOLATE_SCOPE
 }
@@ -520,11 +528,10 @@ void* V8IsolateImpl::AddRefV8Object(void* pvObject)
 
 void V8IsolateImpl::ReleaseV8Object(void* pvObject)
 {
-    BEGIN_ISOLATE_SCOPE
-
-        Dispose(::ObjectHandleFromPtr(pvObject));
-
-    END_ISOLATE_SCOPE
+    CallWithLockNoWait([pvObject] (V8IsolateImpl* pIsolateImpl)
+    {
+        pIsolateImpl->Dispose(::ObjectHandleFromPtr(pvObject));
+    });
 }
 
 //-----------------------------------------------------------------------------
@@ -542,11 +549,34 @@ void* V8IsolateImpl::AddRefV8Script(void* pvScript)
 
 void V8IsolateImpl::ReleaseV8Script(void* pvScript)
 {
-    BEGIN_ISOLATE_SCOPE
+    CallWithLockNoWait([pvScript] (V8IsolateImpl* pIsolateImpl)
+    {
+        pIsolateImpl->Dispose(::ScriptHandleFromPtr(pvScript));
+    });
+}
 
-        Dispose(::ScriptHandleFromPtr(pvScript));
+//-----------------------------------------------------------------------------
 
-    END_ISOLATE_SCOPE
+void V8IsolateImpl::CallWithLockNoWait(std::function<void(V8IsolateImpl*)>&& callback)
+{
+    if (m_Mutex.TryLock())
+    {
+        // the callback may release this instance; hold it for destruction outside isolate scope
+        SharedPtr<V8IsolateImpl> spThis(this);
+
+        MutexLock<RecursiveMutex> lock(m_Mutex, false);
+        BEGIN_ISOLATE_NATIVE_SCOPE
+            callback(this);
+        END_ISOLATE_NATIVE_SCOPE
+    }
+    else
+    {
+        std::function<void(V8IsolateImpl*)> userCallback(std::move(callback));
+        CallWithLockAsync([userCallback] (V8IsolateImpl* pIsolateImpl)
+        {
+            userCallback(pIsolateImpl);
+        });
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -561,10 +591,10 @@ void DECLSPEC_NORETURN V8IsolateImpl::ThrowOutOfMemoryException()
 
 V8IsolateImpl::~V8IsolateImpl()
 {
+    --s_InstanceCount;
+
     BEGIN_ISOLATE_SCOPE
-
         DisableDebugging();
-
     END_ISOLATE_SCOPE
 
     m_pIsolate->Dispose();
@@ -572,26 +602,45 @@ V8IsolateImpl::~V8IsolateImpl()
 
 //-----------------------------------------------------------------------------
 
-void V8IsolateImpl::OnInterruptShared(Isolate* pIsolate, void* /*pvData*/)
+void V8IsolateImpl::CallWithLockAsync(std::function<void(V8IsolateImpl*)>&& callback)
 {
-    static_cast<V8IsolateImpl*>(pIsolate->GetData(0))->OnInterrupt();
+    if (callback)
+    {
+        size_t queueLength;
+
+        BEGIN_MUTEX_SCOPE(m_CallWithLockQueueMutex)
+            m_CallWithLockQueue.push(std::move(callback));
+            queueLength = m_CallWithLockQueue.size();
+        END_MUTEX_SCOPE
+
+        if (queueLength == 1)
+        {
+            RequestInterrupt(ProcessCallWithLockQueue, this);
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
 
-void V8IsolateImpl::OnInterrupt()
+void V8IsolateImpl::ProcessCallWithLockQueue(v8::Isolate* /*pIsolate*/, void* pvIsolateImpl)
 {
-    std::function<void(V8IsolateImpl*)> callback; 
+    static_cast<V8IsolateImpl*>(pvIsolateImpl)->ProcessCallWithLockQueue();
+}
 
-    BEGIN_MUTEX_SCOPE(m_InterruptMutex)
+//-----------------------------------------------------------------------------
 
-        callback = std::move(m_InterruptCallback);
+void V8IsolateImpl::ProcessCallWithLockQueue()
+{
+    std::queue<std::function<void(V8IsolateImpl*)>> callWithLockQueue;
 
+    BEGIN_MUTEX_SCOPE(m_CallWithLockQueueMutex)
+        std::swap(callWithLockQueue, m_CallWithLockQueue);
     END_MUTEX_SCOPE
 
-    if (callback)
+    while (callWithLockQueue.size() > 0)
     {
-        callback(this);
+        callWithLockQueue.front()(this);
+        callWithLockQueue.pop();
     }
 }
 
@@ -599,19 +648,19 @@ void V8IsolateImpl::OnInterrupt()
 
 void V8IsolateImpl::SendDebugCommand(const StdString& command)
 {
-    Debug::SendCommand(m_pIsolate, command.ToCString(), command.GetLength());
+    v8::Debug::SendCommand(m_pIsolate, command.ToCString(), command.GetLength());
 }
 
 //-----------------------------------------------------------------------------
 
-void V8IsolateImpl::OnDebugMessageShared(const Debug::Message& message)
+void V8IsolateImpl::OnDebugMessageShared(const v8::Debug::Message& message)
 {
     static_cast<V8IsolateImpl*>(message.GetIsolate()->GetData(0))->OnDebugMessage(message);
 }
 
 //-----------------------------------------------------------------------------
 
-void V8IsolateImpl::OnDebugMessage(const Debug::Message& message)
+void V8IsolateImpl::OnDebugMessage(const v8::Debug::Message& message)
 {
     if (m_pvDebugAgent)
     {
@@ -648,8 +697,7 @@ void V8IsolateImpl::ProcessDebugMessages()
 
 void V8IsolateImpl::EnterExecutionScope(size_t* pStackMarker)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
+    _ASSERTE(IsCurrent() && IsLocked());
 
     // is heap size monitoring in progress?
     if (m_HeapWatchLevel == 0)
@@ -720,14 +768,16 @@ void V8IsolateImpl::EnterExecutionScope(size_t* pStackMarker)
         // enter nested stack usage monitoring scope
         m_StackWatchLevel++;
     }
+
+    // clear termination flag
+    m_IsExecutionTerminating = false;
 }
 
 //-----------------------------------------------------------------------------
 
 void V8IsolateImpl::ExitExecutionScope()
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
+    _ASSERTE(IsCurrent() && IsLocked());
 
     // is stack usage monitoring in progress?
     if (m_StackWatchLevel > 0)
@@ -761,8 +811,7 @@ void V8IsolateImpl::ExitExecutionScope()
 
 void V8IsolateImpl::SetUpHeapWatchTimer(size_t maxHeapSize)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
+    _ASSERTE(IsCurrent() && IsLocked());
 
     // create heap watch timer
     auto wrIsolate = CreateWeakRef();
@@ -774,7 +823,7 @@ void V8IsolateImpl::SetUpHeapWatchTimer(size_t maxHeapSize)
         {
             // yes; request callback on execution thread
             auto wrTimer = pTimer->CreateWeakRef();
-            static_cast<V8IsolateImpl*>(spIsolate.GetRawPtr())->RequestInterrupt([wrTimer, maxHeapSize] (V8IsolateImpl* pIsolateImpl)
+            static_cast<V8IsolateImpl*>(spIsolate.GetRawPtr())->CallWithLockAsync([wrTimer, maxHeapSize] (V8IsolateImpl* pIsolateImpl)
             {
                 // execution thread callback; is the timer still alive?
                 auto spTimer = wrTimer.GetTarget();
@@ -795,8 +844,7 @@ void V8IsolateImpl::SetUpHeapWatchTimer(size_t maxHeapSize)
 
 void V8IsolateImpl::CheckHeapSize(size_t maxHeapSize)
 {
-    _ASSERTE(m_pIsolate == Isolate::GetCurrent());
-    _ASSERTE(Locker::IsLocked(m_pIsolate));
+    _ASSERTE(IsCurrent() && IsLocked());
 
     // is the total heap size over the limit?
     V8IsolateHeapInfo heapInfo;
