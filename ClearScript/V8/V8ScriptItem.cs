@@ -67,7 +67,7 @@ using Microsoft.ClearScript.Util;
 namespace Microsoft.ClearScript.V8
 {
     [Newtonsoft.Json.JsonConverter(typeof(V8ScriptItemConverter))]
-    internal class V8ScriptItem : ScriptItem, IDisposable , IV8ScriptItem
+    internal class V8ScriptItem : ScriptItem, IDisposable , IV8ScriptItem, IV8ArrayBuffer
     {
         private readonly V8ScriptEngine engine;
         private readonly IV8Object target;
@@ -320,6 +320,13 @@ namespace Microsoft.ClearScript.V8
         {
             ((IV8Object)this.Unwrap()).ReadBuffer(buffer, startIndex, length);
         }
+
+        public void WriteBuffer(byte[] source, int startIndex, int length)
+        {
+            ((IV8Object)this.Unwrap()).WriteBuffer(source, startIndex, length);
+           
+        }
+
 
         public JsTypes GetJsType()
         {

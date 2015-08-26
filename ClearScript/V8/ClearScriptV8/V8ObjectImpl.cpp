@@ -207,6 +207,25 @@ namespace V8 {
 			exception.ThrowScriptEngineException();
 		}
 	}
+
+	//-------------------------------------------------------------------------
+
+	void V8ObjectImpl::WriteBuffer(array<byte>^ source, int startIndex,  int length)
+{
+		try
+		{
+			void* contents = V8ObjectHelpers::GetContents(GetHolder());
+		
+			System::Runtime::InteropServices::Marshal::Copy(source, startIndex, IntPtr((void *)contents), length);
+			
+		}
+		catch (const V8Exception& exception)
+		{
+			exception.ThrowScriptEngineException();
+		}
+	}
+	//-------------------------------------------------------------------------
+	
 	
 
     //-------------------------------------------------------------------------

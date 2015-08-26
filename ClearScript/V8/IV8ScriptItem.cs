@@ -16,7 +16,7 @@ namespace Microsoft.ClearScript.V8
     /// <summary>
     /// stuff
     /// </summary>
-    public interface IV8ScriptItem
+    public interface IV8ScriptItem 
     {
         //V8ScriptEngine Engine { get; }
         /// <summary>
@@ -24,6 +24,15 @@ namespace Microsoft.ClearScript.V8
         /// </summary>
         /// <returns>if array</returns>
         JsTypes GetJsType();
+        
+      
+    }
+
+    /// <summary>
+    /// Interface Around reading and writing to the v8 ArrayBuffer
+    /// </summary>
+    public interface IV8ArrayBuffer: IV8ScriptItem
+    {
         /// <summary>
         /// reads a byte array from an array buffer
         /// </summary>
@@ -32,7 +41,16 @@ namespace Microsoft.ClearScript.V8
         /// <param name="length">length </param>
         void ReadBuffer(byte[] buffer, int startIndex, int length);
 
+        /// <summary>
+        /// Copies a range of elements from an <see cref="T:System.Array"/> starting at the specified source index and pastes them to another <see cref="T:System.Array"/> starting at the specified destination index. The length and the indexes are specified as 64-bit integers.
+        /// </summary>
+        /// <param name="source">The one-dimensional array to copy from.</param>
+        /// <param name="startIndex">The zero-based index into the array where Copy should start.</param>
+        /// <param name="length">he number of array elements to copy.</param>
+
+        void WriteBuffer(byte[] source, int startIndex, int length);
     }
+
     /// <summary>
     /// enum of javascript types
     /// </summary>

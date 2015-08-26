@@ -218,7 +218,7 @@ namespace Microsoft.ClearScript.Test
 
         
           
-            var arrayBuffer = (Microsoft.ClearScript.V8.IV8ScriptItem)engine.Evaluate(" var buffer = new ArrayBuffer(16); var uarr =new Uint8Array(buffer); uarr[2]=16; uarr[1]=5; x= buffer;");
+            var arrayBuffer = (Microsoft.ClearScript.V8.IV8ArrayBuffer)engine.Evaluate(" var buffer = new ArrayBuffer(16); var uarr =new Uint8Array(buffer); uarr[2]=16; uarr[1]=5; x= buffer;");
 
           
             var d = (dynamic)arrayBuffer;
@@ -227,6 +227,15 @@ namespace Microsoft.ClearScript.Test
             arrayBuffer.ReadBuffer(buffer, 0, 16);
             Assert.AreEqual(buffer[2], Convert.ToByte(16));
             Assert.AreEqual(buffer[1], Convert.ToByte(5));
+
+            byte[] inbytes = System.Text.Encoding.UTF8.GetBytes("hello");
+            arrayBuffer.WriteBuffer(inbytes, 0,  inbytes.Length);
+
+
+            arrayBuffer.ReadBuffer(buffer, 0, 16);
+            var hello=System.Text.Encoding.UTF8.GetString(buffer,0, inbytes.Length);
+            Assert.AreEqual("hello", hello);
+
 
             Assert.AreEqual(arrayBuffer.GetJsType(), JsTypes.jsArrayBuffer);
 
