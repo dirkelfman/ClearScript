@@ -314,6 +314,13 @@ namespace Microsoft.ClearScript.V8
 
         #endregion
 
+
+
+        public void ReadBuffer(byte[] buffer, int startIndex, int length)
+        {
+            ((IV8Object)this.Unwrap()).ReadBuffer(buffer, startIndex, length);
+        }
+
         public JsTypes GetJsType()
         {
             if (!_jsType.HasValue)
@@ -339,6 +346,9 @@ namespace Microsoft.ClearScript.V8
     }
     if (Object.prototype.toString.call( obj ) == '[object Arguments]') {
         return 6;
+    }
+    if ( obj instanceof ArrayBuffer){
+        return 8;
     }
     if ( obj instanceof Error ){
         return 7;

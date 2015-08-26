@@ -538,7 +538,23 @@ V8Value V8ContextImpl::GetV8ObjectProperty(void* pvObject, int index)
 
     END_EXECUTION_SCOPE
     END_CONTEXT_SCOPE
+
 }
+
+
+//-----------------------------------------------------------------------------
+
+void* V8ContextImpl::GetV8ArrayBufferContents(void* pvObject)
+{
+
+	v8::Value*  v8Val = static_cast<v8::Value*>(pvObject);
+	v8::ArrayBuffer* buffer = v8::ArrayBuffer::Cast(v8Val);
+	v8::ArrayBuffer::Contents contents = buffer->GetContents();
+
+	return contents.Data();
+
+}
+
 
 //-----------------------------------------------------------------------------
 

@@ -80,7 +80,7 @@ public:
     static void SetProperty(V8ObjectHolder* pHolder, int index, const V8Value& value);
     static bool DeleteProperty(V8ObjectHolder* pHolder, int index);
     static void GetPropertyIndices(V8ObjectHolder* pHolder, std::vector<int>& indices);
-
+	static void* V8ObjectHelpers::GetContents(V8ObjectHolder* pHolder);
     static V8Value Invoke(V8ObjectHolder* pHolder, const std::vector<V8Value>& args, bool asConstructor);
     static V8Value InvokeMethod(V8ObjectHolder* pHolder, const StdString& name, const std::vector<V8Value>& args);
 };

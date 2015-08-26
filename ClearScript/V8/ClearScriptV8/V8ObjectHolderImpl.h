@@ -89,6 +89,9 @@ public:
     V8Value Invoke(const std::vector<V8Value>& args, bool asConstructor) const;
     V8Value InvokeMethod(const StdString& name, const std::vector<V8Value>& args) const;
 
+	void* GetContents() const;
+
+
     ~V8ObjectHolderImpl();
 
 private:

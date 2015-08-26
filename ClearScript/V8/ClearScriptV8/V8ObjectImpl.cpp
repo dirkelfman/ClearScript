@@ -191,6 +191,24 @@ namespace V8 {
         }
     }
 
+	//-------------------------------------------------------------------------
+
+	void V8ObjectImpl::ReadBuffer(array<byte>^ buffer, int startIndex, int length)
+	{
+		try
+		{
+			void* contents = V8ObjectHelpers::GetContents(GetHolder());
+
+			System::Runtime::InteropServices::Marshal::Copy(IntPtr((void *)contents), buffer, startIndex, length);
+			
+		}
+		catch (const V8Exception& exception)
+		{
+			exception.ThrowScriptEngineException();
+		}
+	}
+	
+
     //-------------------------------------------------------------------------
 
     array<int>^ V8ObjectImpl::GetPropertyIndices()

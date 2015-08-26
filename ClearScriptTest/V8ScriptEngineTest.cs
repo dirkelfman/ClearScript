@@ -69,6 +69,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Threading;
 using System.Windows.Threading;
@@ -208,6 +209,56 @@ namespace Microsoft.ClearScript.Test
             engine.AddHostObject("host", host);
             Assert.AreSame(host, engine.Evaluate("host"));
         }
+
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void ByteArrToString()
+        {
+            
+
+        
+          
+            var arrayBuffer = (Microsoft.ClearScript.V8.IV8ScriptItem)engine.Evaluate(" var buffer = new ArrayBuffer(16); var uarr =new Uint8Array(buffer); uarr[2]=16; uarr[1]=5; x= buffer;");
+
+          
+            var d = (dynamic)arrayBuffer;
+            var c= d.byteLength;
+            byte[] buffer = new byte[16];
+            arrayBuffer.ReadBuffer(buffer, 0, 16);
+            Assert.AreEqual(buffer[2], Convert.ToByte(16));
+            Assert.AreEqual(buffer[1], Convert.ToByte(5));
+
+            Assert.AreEqual(arrayBuffer.GetJsType(), JsTypes.jsArrayBuffer);
+
+
+
+
+        }
+
+        public class PointerConverter
+        {
+            private static readonly ConstructorInfo _intPtrCtor = typeof(IntPtr).GetConstructor(
+                new Type[] { Type.GetType("System.Void*") });
+
+            private static readonly MethodInfo _toPointer = typeof(IntPtr).GetMethod(
+                    "ToPointer",
+                    BindingFlags.Instance | BindingFlags.Public);
+
+            private static readonly object[] _emptyArray = new object[0];
+
+            public static Pointer IntPtrToPointer(IntPtr intPtr)
+            {
+                return (Pointer)_toPointer.Invoke(intPtr, _emptyArray);
+            }
+
+            public static IntPtr PointerToIntPtr(Pointer ptr)
+            {
+                return (IntPtr)_intPtrCtor.Invoke(new object[1] { ptr });
+            }
+        }
+
+
+
 
 
 

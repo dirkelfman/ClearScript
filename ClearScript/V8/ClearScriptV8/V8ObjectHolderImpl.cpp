@@ -141,6 +141,13 @@ void V8ObjectHolderImpl::GetPropertyIndices(std::vector<int>& indices) const
     m_spBinding->GetContextImpl()->GetV8ObjectPropertyIndices(m_pvObject, indices);
 }
 
+void* V8ObjectHolderImpl::GetContents() const 
+{
+	return m_spBinding->GetContextImpl()->GetV8ArrayBufferContents(m_pvObject);
+}
+
+
+
 //-----------------------------------------------------------------------------
 
 V8Value V8ObjectHolderImpl::Invoke(const std::vector<V8Value>& args, bool asConstructor) const

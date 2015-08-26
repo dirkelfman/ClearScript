@@ -130,6 +130,14 @@ void V8ObjectHelpers::GetPropertyIndices(V8ObjectHolder* pHolder, std::vector<in
 
 //-----------------------------------------------------------------------------
 
+void* V8ObjectHelpers::GetContents(V8ObjectHolder* pHolder)
+{
+	void* ret = GetHolderImpl(pHolder)->GetContents();
+	return ret;
+}
+
+//-----------------------------------------------------------------------------
+
 V8Value V8ObjectHelpers::Invoke(V8ObjectHolder* pHolder, const std::vector<V8Value>& args, bool asConstructor)
 {
     return GetHolderImpl(pHolder)->Invoke(args, asConstructor);

@@ -24,6 +24,13 @@ namespace Microsoft.ClearScript.V8
         /// </summary>
         /// <returns>if array</returns>
         JsTypes GetJsType();
+        /// <summary>
+        /// reads a byte array from an array buffer
+        /// </summary>
+        /// <param name="buffer">byte array to read into</param>
+        /// <param name="startIndex">startIndex</param>
+        /// <param name="length">length </param>
+        void ReadBuffer(byte[] buffer, int startIndex, int length);
 
     }
     /// <summary>
@@ -63,7 +70,12 @@ namespace Microsoft.ClearScript.V8
         /// fn
         /// </summary>
         jsError = 7,
+        /// <summary>
+        /// fn
+        /// </summary>
+        jsArrayBuffer = 8
     }
+    
     /// <summary>
     /// blurp
     /// </summary>
