@@ -1,3 +1,6 @@
+Remove-Item *.nupkg
+
+$status =git status -s -uno
 if( $status.Length -gt 0)
 {
 	Write-Host "files not committed"
@@ -5,11 +8,10 @@ if( $status.Length -gt 0)
 	Exit
 }
 
-Remove-Item *.nupkg
 
-IEX "&'C:\Program Files (x86)\MSBuild\12.0\Bin\MSBuild.exe' ..\clearscript.sln  /p:Configuration=Release /t:clean"
-IEX "&'C:\Program Files (x86)\MSBuild\12.0\Bin\MSBuild.exe' ..\clearscript.sln  /p:Configuration=Release"
-$status =git status -s -uno
+
+IEX "&'C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe' ..\clearscript.sln  /p:Configuration=Release /t:clean"
+IEX "&'C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe' ..\clearscript.sln  /p:Configuration=Release /p:PlatformToolset=v140"
 
 
 $sha = git rev-parse HEAD
