@@ -66,7 +66,7 @@ namespace Microsoft.ClearScript.V8
 {
     internal interface IV8Object : IDynamic, IDisposable
     {
-        void ReadBuffer(byte[] destination, int startIndex, int length);
-        void WriteBuffer(byte[] source, int startIndex,  int length);
+        void ReadBuffer(byte[] destination, int startIndex, int destinationIndex , int length);
+        void WriteBuffer(byte[] source, int startIndex, int destinationIndex, int length);
     }                                           
 }

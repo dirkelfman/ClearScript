@@ -39,7 +39,8 @@ namespace Microsoft.ClearScript.V8
         /// <param name="buffer">byte array to read into</param>
         /// <param name="startIndex">startIndex</param>
         /// <param name="length">length </param>
-        void ReadBuffer(byte[] buffer, int startIndex, int length);
+        /// <param name="destinaitonIndex">The zero-based index into the array where Copy should start.</param>
+        void ReadBuffer(byte[] buffer, int startIndex, int destinaitonIndex,  int length);
 
         /// <summary>
         /// Copies a range of elements from an <see cref="T:System.Array"/> starting at the specified source index and pastes them to another <see cref="T:System.Array"/> starting at the specified destination index. The length and the indexes are specified as 64-bit integers.
@@ -47,8 +48,13 @@ namespace Microsoft.ClearScript.V8
         /// <param name="source">The one-dimensional array to copy from.</param>
         /// <param name="startIndex">The zero-based index into the array where Copy should start.</param>
         /// <param name="length">he number of array elements to copy.</param>
+        /// <param name="destinaitonIndex">The zero-based index into the array where Copy should start.</param>
+        void WriteBuffer(byte[] source, int startIndex, int destinaitonIndex, int length);
 
-        void WriteBuffer(byte[] source, int startIndex, int length);
+        /// <summary>
+        /// byteLenth of the ArrayBuffer
+        /// </summary>
+        int ByteLength { get; }
     }
 
     /// <summary>

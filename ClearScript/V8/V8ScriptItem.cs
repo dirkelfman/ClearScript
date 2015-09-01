@@ -314,16 +314,36 @@ namespace Microsoft.ClearScript.V8
 
         #endregion
 
-
-
-        public void ReadBuffer(byte[] buffer, int startIndex, int length)
+        object _byteLen;
+        public int ByteLength
         {
-            ((IV8Object)this.Unwrap()).ReadBuffer(buffer, startIndex, length);
+            get
+            {
+                if (_byteLen == null)
+                {
+                    var obj = GetProperty("byteLength");
+                    if (obj is int)
+                    {
+                        _byteLen = (int)obj;
+                    }
+                    else
+                    {
+                        _byteLen = -1;
+                    }
+                }
+                return _byteLen as int? ?? -1;
+
+            }
         }
 
-        public void WriteBuffer(byte[] source, int startIndex, int length)
+        public void ReadBuffer(byte[] buffer, int startIndex, int destinationIndex, int length)
         {
-            ((IV8Object)this.Unwrap()).WriteBuffer(source, startIndex, length);
+            ((IV8Object)this.Unwrap()).ReadBuffer(buffer, startIndex, destinationIndex, length);
+        }
+
+        public void WriteBuffer(byte[] source, int startIndex, int destinationIndex, int length)
+        {
+            ((IV8Object)this.Unwrap()).WriteBuffer(source, startIndex, destinationIndex, length);
            
         }
 

@@ -193,13 +193,14 @@ namespace V8 {
 
 	//-------------------------------------------------------------------------
 
-	void V8ObjectImpl::ReadBuffer(array<byte>^ buffer, int startIndex, int length)
+	void V8ObjectImpl::ReadBuffer(array<byte>^ buffer, int startIndex, int destinationIndex, int length)
 	{
 		try
 		{
 			void* contents = V8ObjectHelpers::GetContents(GetHolder());
-
-			System::Runtime::InteropServices::Marshal::Copy(IntPtr((void *)contents), buffer, startIndex, length);
+			IntPtr contentPtr = IntPtr::Add(IntPtr((void *)contents), startIndex);
+				
+			System::Runtime::InteropServices::Marshal::Copy(contentPtr, buffer, destinationIndex, length);
 			
 		}
 		catch (const V8Exception& exception)
@@ -210,13 +211,13 @@ namespace V8 {
 
 	//-------------------------------------------------------------------------
 
-	void V8ObjectImpl::WriteBuffer(array<byte>^ source, int startIndex,  int length)
+	void V8ObjectImpl::WriteBuffer(array<byte>^ source, int startIndex, int destinationIndex, int length)
 {
 		try
 		{
 			void* contents = V8ObjectHelpers::GetContents(GetHolder());
-		
-			System::Runtime::InteropServices::Marshal::Copy(source, startIndex, IntPtr((void *)contents), length);
+			IntPtr contentPtr = IntPtr::Add(IntPtr((void *)contents), destinationIndex);
+			System::Runtime::InteropServices::Marshal::Copy(source, startIndex, contentPtr, length);
 			
 		}
 		catch (const V8Exception& exception)

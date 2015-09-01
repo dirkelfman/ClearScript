@@ -88,8 +88,8 @@ namespace V8 {
 
         virtual Object^ Invoke(array<Object^>^ gcArgs, bool asConstructor);
         virtual Object^ InvokeMethod(String^ gcName, array<Object^>^ gcArgs);
-		virtual void ReadBuffer(array<byte>^ buffer, int startIndex, int length);
-		virtual void WriteBuffer(array<byte>^ source, int startIndex, int length);
+		virtual void ReadBuffer(array<byte>^ buffer, int startIndex, int destinationIndex, int length);
+		virtual void WriteBuffer(array<byte>^ source, int startIndex, int destinationIndex, int length);
         SharedPtr<V8ObjectHolder> GetHolder();
 
         ~V8ObjectImpl();
