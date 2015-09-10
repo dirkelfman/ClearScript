@@ -2566,24 +2566,50 @@ namespace Microsoft.ClearScript.Test
             }
         }
 
-        public class OverridesToString
+        public class SimpleObject
         {
-            public string FOO(params object[] args)
-            {
-                return string.Join( "---",args);
-            }
+           
 
-            [ScriptMember("toString",ScriptAccess.Full, ScriptMemberFlags.ExposeRuntimeType)]
-            public  string toString()
+     
+            public  string Go()
             {
                 return "xxx";
             }
 
-            public override string ToString()
+            
+        }
+
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngineEngineScope()
+        {
+            engine.Evaluate("function Foo(x){ this._x = x}; Foo.prototype.go=function (){ return this._x.Go()};");
+            var createFn = (dynamic)engine.Evaluate("a = function(x){ return new Foo( x);}");
+            var so = new SimpleObject();
+            var scope =engine.CreateHostItemScope();
+            var foo = createFn(so);
+            var go1 = foo.go();
+            scope.Dispose();
+            foo = createFn(so);
+            try
             {
-                return toString();
+                var go3 = foo.go();
+            }catch( Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
+
+
+
+            try {
+                var go2 = foo.go();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
             }
         }
+
 
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngine_NextTick()
@@ -2629,6 +2655,11 @@ namespace Microsoft.ClearScript.Test
 
             // ReSharper restore AccessToDisposedClosure
         }
+
+
+
+
+
 
         public class Process
         {

@@ -1399,6 +1399,7 @@ namespace Microsoft.ClearScript
 
         internal HostItem GetOrCreateHostItem(HostTarget target, HostItemFlags flags, HostItem.CreateFunc createHostItem)
         {
+           
             var hostObject = target as HostObject;
             if (hostObject != null)
             {
@@ -1431,10 +1432,14 @@ namespace Microsoft.ClearScript
 
             return createHostItem(this, target, flags);
         }
+       
+
+        
+
 
         private HostItem GetOrCreateHostItemForHostObject(HostTarget hostTarget, object target, HostItemFlags flags, HostItem.CreateFunc createHostItem)
         {
-            var cacheEntry = hostObjectHostItemCache.GetOrCreateValue(target ?? nullHostObjectProxy);
+            var cacheEntry = hostObjectHostItemCache.GetValue(target ?? nullHostObjectProxy, CreateHostItemCacheEntry);
 
             List<WeakReference> activeWeakRefs = null;
             var staleWeakRefCount = 0;
@@ -1649,5 +1654,198 @@ namespace Microsoft.ClearScript
         }
 
         #endregion
+
+
+        #region MzAdditions
+
+
+        /// <summary>
+        /// Removes targets from underlying hostitem wrappers... allowing .net objects to unroot and gc.  Accessing thru js will fault with object null.. 
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public bool UnRootHostTarget(object target)
+        {
+            List<WeakReference> lst;
+            if (hostObjectHostItemCache.TryGetValue(target, out lst))
+            {
+                for (int i = 0; i < lst.Count; i++)
+                {
+                    if (lst[0].IsAlive)
+                    {
+                        var hostItem = lst[0].Target as HostItem;
+                        if (hostItem != null)
+                        {
+                            //todo add dispose fault handing in hostitem to fault properly.
+                            hostItem.Target = null;
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
+
+        }
+
+        
+        readonly Dictionary<string, object> _engineState = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Misc state bag for engine
+        /// </summary>
+        public IDictionary<string,object> EngineState
+        {
+            get { return _engineState; }
+        }
+
+        Stack<EngineScope> _scopes = new Stack<EngineScope>();
+
+        /// <summary>
+        /// Creates a scope in which host item are tracked.
+        /// </summary>
+        /// <returns></returns>
+        public IEngineScope CreateHostItemScope()
+        {
+            var scope = new EngineScope(this);
+            _scopes.Push(scope);
+            return scope;
+        }
+        /// <summary>
+        /// the current engine scope
+        /// </summary>
+        public IEngineScope CurrentScope
+        {
+            get
+            {
+                return _scopes.Count == 0 ? null :_scopes.Peek(); 
+            }
+        }
+        internal void RemoveScope ( EngineScope scope)
+        {
+            if (_scopes.Count == 0)
+            {
+                return;
+            }
+            if (_scopes.Peek() == scope)
+            {
+                _scopes.Pop();
+            }
+            else if( _scopes.Any(x=> x == scope))
+            {
+                _scopes = new Stack<EngineScope>(_scopes.Where(x => x != scope));
+            }
+
+        }
+        internal void OnScriptItemCreate(ScriptItem item)
+        {
+            var scope = _scopes.Count==0? null : _scopes.Peek();
+            if (scope != null)
+            {
+                scope.AddScriptItem(item);
+            }
+
+        }
+
+
+        List<WeakReference> CreateHostItemCacheEntry(object target)
+        {
+           var ret= new List<WeakReference>();
+            var scope = _scopes.Count == 0 ? null : _scopes.Peek();
+            if (scope != null)
+            {
+                scope.AddHostTarget(ret);
+            }
+            return ret;
+        }
+
+        #endregion
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public interface IEngineScope: IDisposable
+    {
+        /// <summary>
+        /// Suspend Collection
+        /// </summary>
+        void Suspend();
+        /// <summary>
+        /// Resume collection 
+        /// </summary>
+        void Resume();
+    }
+    class EngineScope: IEngineScope
+    {
+        List<List<WeakReference>> _hostTargetRefernces = new List<List<WeakReference>>();
+        List<WeakReference> _scriptItems = new List<System.WeakReference>();
+        private readonly ScriptEngine engine;
+        bool _isSuspended;
+        
+        public EngineScope(ScriptEngine engine)
+        {
+            this.engine = engine;
+        }
+
+        public void AddHostTarget(List<WeakReference> refrences)
+        {
+            if (_isSuspended)
+                return;
+            _hostTargetRefernces.Add(refrences);
+        }
+
+        public void Dispose()
+        {
+            engine.RemoveScope(this);
+            foreach ( var wrefList in _hostTargetRefernces)
+            {
+                foreach( var wref in wrefList)
+                {
+                    if ( wref.IsAlive)
+                    {
+                        var target = wref.Target;
+                        var obj = target as HostItem;
+                        if (obj != null && obj.Target is HostObject)
+                        {
+                            ((HostObject)obj.Target).ReleaseTarget();
+                            wref.Target = null;       
+                        }
+                    }
+
+                }
+            }
+          
+            foreach ( var item in _scriptItems)
+            {
+                var target = item.Target;
+                if ( target != null)
+                {
+                    ((IDisposable)target).Dispose();
+                }
+            }
+           
+        }
+
+        public void AddScriptItem(ScriptItem item)
+        {
+            if (_isSuspended)
+                return;
+            if ( item is IDisposable)
+            {
+                _scriptItems.Add(new WeakReference(item));
+            }
+            
+        }
+
+        public void Suspend()
+        {
+            _isSuspended = true;
+        }
+
+        public void Resume()
+        {
+            _isSuspended = false;
+        }
+    }
+
 }

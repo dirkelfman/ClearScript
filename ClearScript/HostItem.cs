@@ -82,7 +82,7 @@ namespace Microsoft.ClearScript
         #region data
 
         private readonly ScriptEngine engine;
-        private readonly HostTarget target;
+        private HostTarget target;
         private readonly HostItemFlags flags;
 
         private Type accessContext;
@@ -179,6 +179,7 @@ namespace Microsoft.ClearScript
         public HostTarget Target
         {
             get { return target; }
+            set { target = null; }
         }
 
         public HostItemFlags Flags
@@ -194,6 +195,11 @@ namespace Microsoft.ClearScript
 
         public object InvokeMember(string name, BindingFlags invokeFlags, object[] args, object[] bindArgs, CultureInfo culture, bool bypassTunneling, out bool isCacheable)
         {
+            if ( target ==null )
+            {
+                throw new ObjectDisposedException("HostObject");
+            }
+
             AdjustInvokeFlags(ref invokeFlags);
             isCacheable = false;
 

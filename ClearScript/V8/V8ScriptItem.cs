@@ -78,7 +78,7 @@ namespace Microsoft.ClearScript.V8
         {
             this.engine = engine;
             this.target = target;
-            
+            engine.OnScriptItemCreate(this);
         }
 
         public static object Wrap(V8ScriptEngine engine, object obj)
@@ -348,14 +348,22 @@ namespace Microsoft.ClearScript.V8
         }
 
 
+
+
+        private JsTypes? _jsType;
         public JsTypes GetJsType()
         {
             if (!_jsType.HasValue)
             {
-                var fn = this.engine.Script.getJsTypeId;
-                if (fn == null || fn is Undefined)
+                try
                 {
-                    fn = this.engine.Evaluate(@"x = function(obj) {
+                    _jsType = (JsTypes)(int)this.engine.Invoke("getJsTypeId", this);
+                }
+                catch
+                {
+
+                
+                var fn = this.engine.Evaluate(@"x = function(obj) {
     if (obj instanceof Array) {
         return 1;
     }
@@ -376,22 +384,22 @@ namespace Microsoft.ClearScript.V8
     }
     if ( obj instanceof ArrayBuffer){
         return 8;
-    }
+    } 
     if ( obj instanceof Error ){
         return 7;
     }
-
     return 0;
 };
 ");
-                    this.engine.Script.getJsTypeId = fn;
+                    ((V8ScriptItem)this.engine.Script).SetProperty("getJsTypeId", fn);
+                    _jsType = (JsTypes)(int)this.engine.Invoke("getJsTypeId", this);
                 }
-                _jsType = (JsTypes)(int)fn(this);
+                
             }
             return _jsType.Value;
         }
 
-        private JsTypes? _jsType;
+       
         
     }
 }

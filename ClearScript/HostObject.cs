@@ -71,7 +71,7 @@ namespace Microsoft.ClearScript
     {
         #region data
 
-        private readonly object target;
+        private object target;
         private readonly Type type;
         private static readonly MethodInfo getNullWrapperGenericMethod = typeof(HostObject).GetMethod("GetNullWrapperGeneric", BindingFlags.NonPublic | BindingFlags.Static);
         private static readonly CanonicalRefMap canonicalRefMap = new CanonicalRefMap();
@@ -170,6 +170,11 @@ namespace Microsoft.ClearScript
         public override object Target
         {
             get { return target; }
+            
+        }
+        public void ReleaseTarget()
+        {
+            target = null;
         }
 
         public override object InvokeTarget
