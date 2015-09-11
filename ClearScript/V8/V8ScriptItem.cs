@@ -355,46 +355,53 @@ namespace Microsoft.ClearScript.V8
         {
             if (!_jsType.HasValue)
             {
-                try
+                object tmpObj;
+                
+                if (!engine.EngineState.TryGetValue("getJsTypeIdFn", out tmpObj))
                 {
-                    _jsType = (JsTypes)(int)this.engine.Invoke("getJsTypeId", this);
+                    if (engine.CurrentScope != null)
+                    {
+                        engine.CurrentScope.Suspend();
+                    }
+                        tmpObj = this.engine.Evaluate(@"x = function(obj) {
+                            if (obj instanceof Array) {
+                                return 1;
+                            }
+                            if (obj instanceof Date) {
+                                return 2;
+                            }
+                            if (obj instanceof Function) {
+                                return 3;
+                            }
+                            if ( obj === null){
+                                return 4;
+                            }
+                            if ( obj === undefined){
+                                return 5;
+                            }
+                            if (Object.prototype.toString.call( obj ) == '[object Arguments]') {
+                                return 6;
+                            }
+                            if ( obj instanceof ArrayBuffer){
+                                return 8;
+                            } 
+                            if ( obj instanceof Error ){
+                                return 7;
+                            }
+                            return 0;
+                        };
+                        ");
+                    this.engine.EngineState["getJsTypeIdFn"] = tmpObj;
+                    if (engine.CurrentScope != null)
+                    {
+                        engine.CurrentScope.Resume();
+                    }
                 }
-                catch
-                {
+                var fn = (V8ScriptItem)tmpObj;
+                _jsType = (JsTypes)(int)fn.Invoke(new object[] { this }, false);
 
-                
-                var fn = this.engine.Evaluate(@"x = function(obj) {
-    if (obj instanceof Array) {
-        return 1;
-    }
-    if (obj instanceof Date) {
-        return 2;
-    }
-    if (obj instanceof Function) {
-        return 3;
-    }
-    if ( obj === null){
-        return 4;
-    }
-    if ( obj === undefined){
-        return 5;
-    }
-    if (Object.prototype.toString.call( obj ) == '[object Arguments]') {
-        return 6;
-    }
-    if ( obj instanceof ArrayBuffer){
-        return 8;
-    } 
-    if ( obj instanceof Error ){
-        return 7;
-    }
-    return 0;
-};
-");
-                    ((V8ScriptItem)this.engine.Script).SetProperty("getJsTypeId", fn);
-                    _jsType = (JsTypes)(int)this.engine.Invoke("getJsTypeId", this);
-                }
-                
+
+
             }
             return _jsType.Value;
         }

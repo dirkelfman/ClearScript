@@ -2569,6 +2569,18 @@ namespace Microsoft.ClearScript.Test
         public class SimpleObject
         {
            
+            public SimpleObject()
+            {
+                Bag = new PropertyBag();
+                Bag.PropertyChanged += Bag_PropertyChanged;
+            }
+
+            private void Bag_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
+            }
+
+            public PropertyBag Bag { get; set; }
 
      
             public  string Go()
@@ -2583,11 +2595,12 @@ namespace Microsoft.ClearScript.Test
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngineEngineScope()
         {
-            engine.Evaluate("function Foo(x){ this._x = x}; Foo.prototype.go=function (){ return this._x.Go()};");
+            engine.Evaluate("function Foo(x){ this._x = x}; Foo.prototype.go=function (){ return this._x.Go()};Foo.prototype.add=function (k,v){ return this._x.Bag['a'+k]=v;};");
             var createFn = (dynamic)engine.Evaluate("a = function(x){ return new Foo( x);}");
             var so = new SimpleObject();
             var scope =engine.CreateHostItemScope();
             var foo = createFn(so);
+            foo.add("a", 2);
             var go1 = foo.go();
             scope.Dispose();
             foo = createFn(so);
