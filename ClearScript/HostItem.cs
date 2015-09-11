@@ -2188,5 +2188,21 @@ namespace Microsoft.ClearScript
         }
 
         #endregion
+
+
+
+        public bool ReleaseTarget()
+        {
+            var ho = target as HostObject;
+            if (ho != null)
+            {
+                ho.ReleaseTarget();
+                this.TargetJToken = null;
+                this.TargetList = null;
+                this.TargetDynamicMetaObject = null;
+                return true;
+            }
+            return false;
+        }
     }
 }

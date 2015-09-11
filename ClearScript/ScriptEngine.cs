@@ -1805,10 +1805,13 @@ namespace Microsoft.ClearScript
                     {
                         var target = wref.Target;
                         var obj = target as HostItem;
-                        if (obj != null && obj.Target is HostObject)
+                        if (obj != null )
                         {
-                            ((HostObject)obj.Target).ReleaseTarget();
-                            wref.Target = null;       
+                             if ( obj.ReleaseTarget())
+                            {
+                                wref.Target = null;
+                            }
+                            
                         }
                     }
 
