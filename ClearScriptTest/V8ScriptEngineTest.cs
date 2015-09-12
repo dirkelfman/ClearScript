@@ -2595,7 +2595,7 @@ namespace Microsoft.ClearScript.Test
         [TestMethod, TestCategory("V8ScriptEngine")]
         public void V8ScriptEngineEngineScope()
         {
-            engine.Evaluate("function Foo(x){ this._x = x}; Foo.prototype.go=function (){ return this._x.Go()};Foo.prototype.add=function (k,v){ return this._x.Bag['a'+k]=v;};");
+            engine.Evaluate("function Foo(x){ this._x = x};Foo.prototype.setSO=function(x){ this._x=x;}; Foo.prototype.go=function (){ return this._x.Go()};Foo.prototype.add=function (k,v){ return this._x.Bag['a'+k]=v;};");
             var createFn = (dynamic)engine.Evaluate("a = function(x){ return new Foo( x);}");
             var so = new SimpleObject();
             var scope =engine.CreateHostItemScope();
@@ -2604,20 +2604,28 @@ namespace Microsoft.ClearScript.Test
             var go1 = foo.go();
             scope.Dispose();
             foo = createFn(so);
+            var go3 = foo.go();
+
+
+            foo = createFn();
+            so = new SimpleObject();
+            scope = engine.CreateHostItemScope();
+            foo.setSO(so);
+            scope.Dispose();
+
             try
             {
-                var go3 = foo.go();
-            }catch( Exception ex)
+                var go2 = foo.go();
+            }
+            catch (ScriptEngineException ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
             }
 
-
-
             try {
-                var go2 = foo.go();
+                var go2 = foo.add("b", 2);
             }
-            catch (Exception ex)
+            catch (ScriptEngineException ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
             }

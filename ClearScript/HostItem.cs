@@ -2197,9 +2197,12 @@ namespace Microsoft.ClearScript
             if (ho != null)
             {
                 ho.ReleaseTarget();
-                this.TargetJToken = null;
-                this.TargetList = null;
-                this.TargetDynamicMetaObject = null;
+                this.Collateral.TargetJToken.Clear(this);
+                this.Collateral.TargetList.Clear(this);
+                this.Collateral.TargetDynamicMetaObject.Clear(this);
+                this.Collateral.TargetPropertyBag.Clear(this);
+                this.Collateral.HostMethodMap.Clear(this);
+
                 return true;
             }
             return false;
