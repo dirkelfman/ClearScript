@@ -200,7 +200,7 @@ namespace Microsoft.ClearScript.V8
          
                 serializer.Serialize(writer, obj, obj.GetType());
             }
-            else if (jsType == JsTypes.JsObject || jsType == JsTypes.JsArray)
+            else if (jsType == JsTypes.JsObject || jsType == JsTypes.JsArray || jsType == JsTypes.jsArguments)
             {
                 
                 try
