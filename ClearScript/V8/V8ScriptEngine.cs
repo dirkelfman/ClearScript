@@ -325,6 +325,40 @@ namespace Microsoft.ClearScript.V8
                                         return exception.stack;
                                     }
                                     return '';
+                                },
+
+                                itemToInspect: null,
+                                getTypeId: function() {
+                                    var obj = EngineInternal.itemToInspect;
+                                    EngineInternal.itemToInspect = null;
+                                    return EngineInternal.getTypeIdInternal(obj);
+                                },
+                                getTypeIdInternal: function(obj) {
+                                    if (obj instanceof Array) {
+                                        return 1;
+                                    }
+                                    if (obj instanceof Date) {
+                                        return 2;
+                                    }
+                                    if (obj instanceof Function) {
+                                        return 3;
+                                    }
+                                    if (obj === null) {
+                                        return 4;
+                                    }
+                                    if (obj === undefined) {
+                                        return 5;
+                                    }
+                                    if (Object.prototype.toString.call(obj) == '[object Arguments]') {
+                                        return 6;
+                                    }
+                                    if (obj instanceof ArrayBuffer) {
+                                        return 8;
+                                    }
+                                    if (obj instanceof Error) {
+                                        return 7;
+                                    }
+                                    return 0;
                                 }
                             };
                         })();

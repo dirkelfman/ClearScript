@@ -367,10 +367,14 @@ private:
     std::vector<std::pair<StdString, Persistent<v8::Object>>> m_GlobalMembersStack;
     Persistent<v8::String> m_hHostObjectCookieName;
     Persistent<v8::String> m_hHostExceptionName;
+
     Persistent<v8::String> m_hAccessTokenName;
     Persistent<v8::Object> m_hAccessToken;
     Persistent<v8::FunctionTemplate> m_hHostObjectTemplate;
     Persistent<v8::FunctionTemplate> m_hHostDelegateTemplate;
+
+	Persistent<v8::Function> m_hStringify;
+
     Persistent<v8::Value> m_hTerminationException;
     SharedPtr<V8WeakContextBinding> m_spWeakBinding;
     void* m_pvV8ObjectCache;

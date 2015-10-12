@@ -355,53 +355,8 @@ namespace Microsoft.ClearScript.V8
         {
             if (!_jsType.HasValue)
             {
-                object tmpObj;
-                
-                if (!engine.EngineState.TryGetValue("getJsTypeIdFn", out tmpObj))
-                {
-                    if (engine.CurrentScope != null)
-                    {
-                        engine.CurrentScope.Suspend();
-                    }
-                        tmpObj = this.engine.Evaluate(@"x = function(obj) {
-                            if (obj instanceof Array) {
-                                return 1;
-                            }
-                            if (obj instanceof Date) {
-                                return 2;
-                            }
-                            if (obj instanceof Function) {
-                                return 3;
-                            }
-                            if ( obj === null){
-                                return 4;
-                            }
-                            if ( obj === undefined){
-                                return 5;
-                            }
-                            if (Object.prototype.toString.call( obj ) == '[object Arguments]') {
-                                return 6;
-                            }
-                            if ( obj instanceof ArrayBuffer){
-                                return 8;
-                            } 
-                            if ( obj instanceof Error ){
-                                return 7;
-                            }
-                            return 0;
-                        };
-                        ");
-                    this.engine.EngineState["getJsTypeIdFn"] = tmpObj;
-                    if (engine.CurrentScope != null)
-                    {
-                        engine.CurrentScope.Resume();
-                    }
-                }
-                var fn = (V8ScriptItem)tmpObj;
-                _jsType = (JsTypes)(int)fn.Invoke(new object[] { this }, false);
-
-
-
+                this.Engine.Script.EngineInternal.itemToInspect = this;
+                _jsType = (JsTypes)((int)this.Engine.Script.EngineInternal.getTypeId());
             }
             return _jsType.Value;
         }

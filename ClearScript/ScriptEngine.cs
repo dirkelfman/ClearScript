@@ -61,6 +61,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -1334,10 +1335,10 @@ namespace Microsoft.ClearScript
             {
                 if (scriptError is ScriptInterruptedException)
                 {
-                    throw new ScriptInterruptedException(scriptError.EngineName, scriptError.Message, scriptError.ErrorDetails, scriptError.HResult, scriptError.IsFatal, scriptError.InnerException, scriptError.ScriptError);
+                    throw new ScriptInterruptedException(scriptError.EngineName, scriptError.Message, scriptError.ErrorDetails, scriptError.HResult, scriptError.IsFatal, scriptError.InnerException, scriptError.ErrorJson);
                 }
 
-                throw new ScriptEngineException(scriptError.EngineName, scriptError.Message, scriptError.ErrorDetails, scriptError.HResult, scriptError.IsFatal, scriptError.InnerException, scriptError.ScriptError);
+                throw new ScriptEngineException(scriptError.EngineName, scriptError.Message, scriptError.ErrorDetails, scriptError.HResult, scriptError.IsFatal, scriptError.InnerException, scriptError.ErrorJson);
             }
         }
 
@@ -1688,12 +1689,12 @@ namespace Microsoft.ClearScript
         }
 
         
-        readonly Dictionary<string, object> _engineState = new Dictionary<string, object>();
+        readonly ConcurrentDictionary<string, object> _engineState = new ConcurrentDictionary<string, object>();
 
         /// <summary>
         /// Misc state bag for engine
         /// </summary>
-        public IDictionary<string,object> EngineState
+        public ConcurrentDictionary<string,object> EngineState
         {
             get { return _engineState; }
         }

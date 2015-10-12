@@ -193,13 +193,7 @@ namespace Microsoft.ClearScript
             get { return isFatal; }
         }
 
-        /// <summary>
-        /// Gets the imple of the script error.
-        /// </summary>
-        public object ScriptError
-        {
-            get { return error; }
-        }
+       
 
         #endregion
 
@@ -221,15 +215,9 @@ namespace Microsoft.ClearScript
         #endregion
         
         
-
         /// <summary>
-        /// Get the script error
+        /// JSon string containing any other properties on the throwable
         /// </summary>
-        /// <param name="engine"></param>
-        /// <returns></returns>
-        public object MarshalScriptError(ScriptEngine engine)
-        {
-            return engine.MarshalToHost(error, false);
-        }
+        public string ErrorJson { get { return error as string; } }
     }
 }

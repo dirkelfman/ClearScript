@@ -76,6 +76,8 @@ void DECLSPEC_NORETURN V8Exception::ThrowScriptEngineException() const
     auto gcInnerException = V8ProxyHelpers::MarshalExceptionToHost(V8ContextProxyImpl::ExportValue(m_InnerException));
 	auto gcErrorObject = V8ContextProxyImpl::ExportValue(m_ErrorObject);
 		
+	V8ProxyHelpers::AddRefHostObject(gcErrorObject);
+
     switch (m_Type)
     {
         case Type_General: default:

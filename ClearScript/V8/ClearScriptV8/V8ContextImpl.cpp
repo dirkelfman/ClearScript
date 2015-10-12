@@ -219,6 +219,14 @@ V8ContextImpl::V8ContextImpl(V8IsolateImpl* pIsolateImpl, const StdString& name,
 
         m_hHostObjectCookieName = CreatePersistent(CreateString(StdString(L"{c2cf47d3-916b-4a3f-be2a-6ff567425808}")));
         m_hHostExceptionName = CreatePersistent(CreateString(StdString(L"hostException")));
+		
+		auto stringifyStr = CreateString(StdString(L"stringify"));
+		auto jsonStr = CreateString(StdString(L"JSON"));
+		auto global = m_hContext->Global()->GetPrototype()->ToObject();
+		auto jsonObj = global->Get(jsonStr)->ToObject();
+		
+		m_hStringify = CreatePersistent(v8::Local<v8::Function>::Cast(jsonObj->Get(stringifyStr)));
+
         m_hAccessTokenName = CreatePersistent(CreateString(StdString(L"{cdc19e6e-5d80-4627-a605-bb4805f15086}")));
 
         m_hHostObjectTemplate = CreatePersistent(CreateFunctionTemplate());
@@ -1636,7 +1644,7 @@ V8Value V8ContextImpl::ExportValue(v8::Local<v8::Value> hValue)
         auto hObject = hValue->ToObject();
         if (hObject->HasOwnProperty(m_hHostObjectCookieName))
         {
-            return V8Value(::GetHostObjectHolder(hObject)->Clone());
+			return V8Value(::GetHostObjectHolder(hObject)->Clone());
         }
 
         return V8Value(new V8ObjectHolderImpl(GetWeakBinding(), ::PtrFromObjectHandle(CreatePersistent(hObject))));
@@ -1839,10 +1847,24 @@ void V8ContextImpl::Verify(const v8::TryCatch& tryCatch)
                 }
             }
 
-            if (hException->IsObject())
-            {
-				scriptError = ExportValue(hException->ToObject());
-                hostException = ExportValue(hException->ToObject()->Get(m_hHostExceptionName));
+			if (hException->IsObject())
+			{
+				hostException = ExportValue(hException->ToObject()->Get(m_hHostExceptionName));
+				if ( hostException.IsUndefined())
+				{
+					try
+					{
+
+						v8::Local<v8::Value> str = m_hStringify->CallAsFunction(m_hStringify, 1, &hException);
+						//v8::Local<v8::Value> str = m_hStringify->Call(m_hStringify, 1, &hException);
+						scriptError = ExportValue(str->ToString());
+					}
+					catch (...)
+					{
+					}
+				}
+				
+                
             }
         }
 

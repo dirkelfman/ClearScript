@@ -147,5 +147,5 @@ V8Value V8ObjectHelpers::Invoke(V8ObjectHolder* pHolder, const std::vector<V8Val
 
 V8Value V8ObjectHelpers::InvokeMethod(V8ObjectHolder* pHolder, const StdString& name, const std::vector<V8Value>& args)
 {
-    return GetHolderImpl(pHolder)->InvokeMethod(name, args);
+	return GetHolderImpl(pHolder)->InvokeMethod(name, args);
 }

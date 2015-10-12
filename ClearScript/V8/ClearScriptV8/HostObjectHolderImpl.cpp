@@ -81,7 +81,7 @@ HostObjectHolderImpl* HostObjectHolderImpl::Clone() const
 
 void* HostObjectHolderImpl::GetObject() const
 {
-    return m_pvObject;
+	return m_pvObject;
 }
 
 //-----------------------------------------------------------------------------

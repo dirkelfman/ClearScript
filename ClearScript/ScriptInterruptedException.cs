@@ -159,11 +159,11 @@ namespace Microsoft.ClearScript
 
 
         /// <summary>
-        /// Gets the imple of the script error.
+        /// json strigified ver of the thrown error
         /// </summary>
-        public object ScriptError
+        public string ErrorJson
         {
-            get { return error; }
+            get { return error as string; }
         }
 
 

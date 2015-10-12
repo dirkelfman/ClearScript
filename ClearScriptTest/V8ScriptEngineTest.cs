@@ -320,10 +320,10 @@ namespace Microsoft.ClearScript.Test
             }
             catch (Microsoft.ClearScript.ScriptEngineException ex)
             {
-                var scriptError = (dynamic)ex.MarshalScriptError(engine);
-                Assert.AreEqual("zeebra", scriptError.prop1);
-                var stack = scriptError.stack;
-                Assert.IsNotNull(stack);
+               
+                var prop1Val = JObject.Parse(ex.ErrorJson).GetValue("prop1").Value<string>();
+                Assert.AreEqual("zeebra", prop1Val);
+              
             }
            
   
@@ -333,14 +333,30 @@ namespace Microsoft.ClearScript.Test
             }
             catch (Microsoft.ClearScript.ScriptEngineException ex)
             {
-                var scriptError = (dynamic)ex.MarshalScriptError(engine);
-                var jtoken = JToken.FromObject(scriptError);
+               
+                var jtoken = JToken.FromObject(ex.ErrorJson);
                 Assert.IsNotNull(jtoken);
                 Assert.AreEqual(ex != null, true);
           
             }
 
-       
+           
+            try
+            {
+                Action a = () => { throw new NotFiniteNumberException("bing", 123); };
+                engine.Execute("function Doit(fn) { fn();}");
+                engine.Script.Doit(a);
+            }
+            catch (Microsoft.ClearScript.ScriptEngineException ex)
+            {
+
+                
+                Assert.IsNull(ex.ErrorJson);
+         
+
+            }
+
+
         }
 
 

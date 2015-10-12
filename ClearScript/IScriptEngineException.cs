@@ -94,9 +94,9 @@ namespace Microsoft.ClearScript
         bool IsFatal { get; }
 
         /// <summary>
-        /// Gets the imple of the script error.
+        /// stringified ver of the thrown error.
         /// </summary>
-        object ScriptError{ get; }
+        string ErrorJson{ get; }
        
 
         /// <summary>
