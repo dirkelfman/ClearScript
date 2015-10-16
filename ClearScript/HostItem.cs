@@ -2202,7 +2202,7 @@ namespace Microsoft.ClearScript
                 this.Collateral.TargetDynamicMetaObject.Clear(this);
                 this.Collateral.TargetPropertyBag.Clear(this);
                 this.Collateral.HostMethodMap.Clear(this);
-
+                targetMemberData = null;
                 return true;
             }
             return false;
