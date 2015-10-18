@@ -2205,6 +2205,7 @@ namespace Microsoft.ClearScript
                 targetMemberData = null;
                 return true;
             }
+            
             return false;
         }
     }
