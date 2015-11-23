@@ -60,6 +60,7 @@
 //       
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -320,16 +321,89 @@ namespace Microsoft.ClearScript.Util
             return type.GetScriptableMethods(bindFlags, defaultAccess).Where(method => method.GetScriptName() == name);
         }
 
-        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, BindingFlags bindFlags, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
-        {
-            var properties = type.GetProperties(bindFlags).AsEnumerable();
 
-            if (type.IsInterface)
+        static ConcurrentDictionary<GetScriptablePropertiesLookup, List<PropertyInfo>> _getScriptablePropertiesCache = new ConcurrentDictionary<GetScriptablePropertiesLookup, List<PropertyInfo>>();
+
+        class GetScriptablePropertiesLookup
+        {
+            public  readonly Type t;
+            public readonly BindingFlags b;
+            public readonly ScriptAccess sa;
+            public readonly bool ecs;
+            int _hc;
+            public GetScriptablePropertiesLookup ( Type t, BindingFlags b, ScriptAccess sa , bool ecs)
             {
-                properties = properties.Concat(type.GetInterfaces().SelectMany(interfaceType => interfaceType.GetScriptableProperties(bindFlags, defaultAccess, enableCaseInsensitivity)));
+                this.t = t;
+                this.b = b;
+                this.sa = sa;
+                this.ecs = ecs;
+                _hc = t.GetHashCode() + (int)b + (int)sa + (ecs?1:0);
             }
 
-            return properties.Where(property => property.IsScriptable(defaultAccess));
+
+            public override int GetHashCode()
+            {
+                return _hc;
+            }
+            public override bool Equals(object obj)
+            {
+                var compar = (GetScriptablePropertiesLookup)obj;
+                return compar.t == this.t &&
+                    compar.b == this.b &&
+                    compar.sa == this.sa &&
+                    compar.ecs == this.ecs;
+            }
+
+        }
+        class GetScriptablePropertyLookup
+        {
+            public readonly Type t;
+            public readonly string name;
+            public readonly BindingFlags b;
+            public readonly ScriptAccess sa;
+            public readonly bool ecs;
+            int _hc;
+            public GetScriptablePropertyLookup(Type t, string name, BindingFlags b, ScriptAccess sa, bool ecs)
+            {
+                this.t = t;
+                this.name = name;
+                this.b = b;
+                this.sa = sa;
+                this.ecs = ecs;
+                _hc = t.GetHashCode() + (name??string.Empty).GetHashCode () + (int)b + (int)sa + (ecs ? 1 : 0);
+            }
+
+
+            public override int GetHashCode()
+            {
+                return _hc;
+            }
+            public override bool Equals(object obj)
+            {
+                var compar = (GetScriptablePropertyLookup)obj;
+                return compar.t == this.t &&
+                    compar.name == this.name &&
+                    compar.b == this.b &&
+                    compar.sa == this.sa &&
+                    compar.ecs == this.ecs;
+            }
+
+        }
+
+        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, BindingFlags bindFlags, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
+        {
+            return _getScriptablePropertiesCache.GetOrAdd(new GetScriptablePropertiesLookup(type, bindFlags, defaultAccess, enableCaseInsensitivity), GetScriptableProperties);
+        }
+        static List<PropertyInfo> GetScriptableProperties(GetScriptablePropertiesLookup lookup)
+        {
+            var properties = lookup.t.GetProperties(lookup.b).AsEnumerable();
+
+            if (lookup.t.IsInterface)
+            {
+                properties = properties.Concat(lookup.t.GetInterfaces().SelectMany(interfaceType => interfaceType.GetScriptableProperties(lookup.b, lookup.sa, lookup.ecs)));
+            }
+
+            return properties.Where(property => property.IsScriptable(lookup.sa)).ToList();
         }
 
         public static IEnumerable<PropertyInfo> GetScriptableDefaultProperties(this Type type, BindingFlags bindFlags, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
@@ -344,25 +418,26 @@ namespace Microsoft.ClearScript.Util
             return properties.Where(property => property.IsScriptable(defaultAccess) && (defaultMembers.Contains(property) || property.IsDispID(SpecialDispIDs.Default)));
         }
 
-        public static IEnumerable<PropertyInfo> GetScriptableProperties(this Type type, string name, BindingFlags bindFlags, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
+        static ConcurrentDictionary<GetScriptablePropertyLookup, PropertyInfo[]> _getScriptablePropertyCache = new ConcurrentDictionary<GetScriptablePropertyLookup, PropertyInfo[]>();
+        public static PropertyInfo[] GetScriptableProperties(this Type type, string name, BindingFlags bindFlags, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
         {
-            if ( enableCaseInsensitivity)
+            return _getScriptablePropertyCache.GetOrAdd(new GetScriptablePropertyLookup(type, name, bindFlags, defaultAccess, enableCaseInsensitivity), GetScriptablePropertiesInternal);
+        }
+        static PropertyInfo[] GetScriptablePropertiesInternal(GetScriptablePropertyLookup lookup)
+        {
+            if (lookup.ecs)
             {
-                return type.GetScriptableProperties(bindFlags, defaultAccess, enableCaseInsensitivity).Where(property => string.Equals(property.GetScriptName(), name, StringComparison.InvariantCultureIgnoreCase));
+                return lookup.t.GetScriptableProperties(lookup.b, lookup.sa, lookup.ecs).Where(property => string.Equals(property.GetScriptName(), lookup.name, StringComparison.InvariantCultureIgnoreCase)).Distinct(PropertySignatureComparer.Instance).ToArray();
             }
-            return type.GetScriptableProperties(bindFlags, defaultAccess, enableCaseInsensitivity).Where(property => property.GetScriptName() == name);
-            
-            
-
-
+            return lookup.t .GetScriptableProperties(lookup.b, lookup.sa, lookup.ecs).Where(property => property.GetScriptName() == lookup.name).Distinct(PropertySignatureComparer.Instance).ToArray();
         }
 
         public static PropertyInfo GetScriptableProperty(this Type type, string name, BindingFlags bindFlags, object[] bindArgs, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
-            {
-            var candidates = type.GetScriptableProperties(name, bindFlags, defaultAccess, enableCaseInsensitivity).Distinct(PropertySignatureComparer.Instance).ToArray();
+        {
+            var candidates = type.GetScriptableProperties(name, bindFlags, defaultAccess, enableCaseInsensitivity);
             return SelectProperty(candidates, bindFlags, bindArgs);
-            }
-
+        }
+       
         public static PropertyInfo GetScriptableDefaultProperty(this Type type, BindingFlags bindFlags, object[] bindArgs, ScriptAccess defaultAccess, bool enableCaseInsensitivity)
                 {
             var candidates = type.GetScriptableDefaultProperties(bindFlags, defaultAccess, enableCaseInsensitivity).Distinct(PropertySignatureComparer.Instance).ToArray();

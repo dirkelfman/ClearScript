@@ -2645,6 +2645,9 @@ namespace Microsoft.ClearScript.Test
             {
                 System.Diagnostics.Debug.WriteLine(ex);
             }
+
+            engine.Dispose();
+          
         }
 
 

@@ -60,6 +60,7 @@
 //       
 
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -109,8 +110,17 @@ namespace Microsoft.ClearScript.Util
             return member.GetScriptAccess(defaultAccess) == ScriptAccess.ReadOnly;
         }
 
+
+        static ConcurrentDictionary<MemberInfo, ScriptAccess?> _scriptAccessCache = new ConcurrentDictionary<MemberInfo, ScriptAccess?>();
+
         public static ScriptAccess GetScriptAccess(this MemberInfo member, ScriptAccess defaultValue)
         {
+            return _scriptAccessCache.GetOrAdd(member, GetScriptAccessInternal) ?? defaultValue;
+        }
+
+        static ScriptAccess? GetScriptAccessInternal( MemberInfo member)
+        {
+
             var attribute = member.GetAttribute<ScriptUsageAttribute>(true);
             if (attribute != null)
             {
@@ -139,8 +149,8 @@ namespace Microsoft.ClearScript.Util
                     return assemblyAttribute.Access;
                 }
             }
-
-            return defaultValue;
+            return null;
+            
         }
 
         public static bool IsRestrictedForScript(this MemberInfo member)
@@ -172,20 +182,53 @@ namespace Microsoft.ClearScript.Util
             return member.Name.IndexOf('.') >= 0;
         }
 
+
+        class GetAttributeLookup
+        {
+            public readonly Type t;
+            public readonly MemberInfo member;
+            public readonly bool inherit;
+            int _hc;
+
+            public GetAttributeLookup( Type t, MemberInfo member, bool inherit)
+            {
+                this.t = t;
+                this.member = member;
+                this.inherit = inherit;
+                _hc = t.GetHashCode() + member.GetHashCode() + (inherit ? 1 : 0);
+            }
+            public override int GetHashCode()
+            {
+                return _hc;
+            }
+            public override bool Equals(object obj)
+            {
+                var comp = (GetAttributeLookup)obj;
+                return comp.inherit == this.inherit &&
+                    comp.t == this.t &&
+                    comp.member == this.member;
+            
+            }
+        }
+        static ConcurrentDictionary<GetAttributeLookup, object> _getAttributeCache = new ConcurrentDictionary<GetAttributeLookup, object>();
         private static T GetAttribute<T>(this MemberInfo member, bool inherit) where T : Attribute
+        {
+            return _getAttributeCache.GetOrAdd(new GetAttributeLookup(typeof(T), member, inherit), GetAttributeInternal) as T;
+        }
+        private static object GetAttributeInternal(GetAttributeLookup lookup) 
         {
             try
             {
-                return Attribute.GetCustomAttributes(member, typeof(T), inherit).SingleOrDefault() as T;
+                return Attribute.GetCustomAttributes(lookup.member , lookup.t , lookup.inherit).SingleOrDefault();
             }
             catch (AmbiguousMatchException)
             {
-                if (inherit)
+                if (lookup.inherit)
                 {
                     // this affects SqlDataReader and is indicative of a .NET issue described here:
                     // http://connect.microsoft.com/VisualStudio/feedback/details/646399/attribute-isdefined-throws-ambiguousmatchexception-for-indexer-properties-and-inherited-attributes
 
-                    return Attribute.GetCustomAttributes(member, typeof(T), false).SingleOrDefault() as T;
+                    return Attribute.GetCustomAttributes(lookup.member, lookup.t , false).SingleOrDefault() ;
                 }
 
                 throw;

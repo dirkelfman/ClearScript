@@ -92,11 +92,13 @@ namespace Microsoft.ClearScript.V8
 
         public static unsafe void* AddRefHostObject(object obj)
         {
+            
             return GCHandle.ToIntPtr(GCHandle.Alloc(obj)).ToPointer();
         }
 
         public static unsafe void ReleaseHostObject(void* pObject)
         {
+            var obj = GetHostObject( pObject);
             GCHandle.FromIntPtr((IntPtr)pObject).Free();
         }
 
