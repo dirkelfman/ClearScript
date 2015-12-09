@@ -2603,8 +2603,8 @@ namespace Microsoft.ClearScript.Test
             {
                 return "xxx";
             }
+            public virtual decimal? Price { get; set; }
 
-            
         }
 
 
@@ -2649,6 +2649,77 @@ namespace Microsoft.ClearScript.Test
             engine.Dispose();
           
         }
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_SetNullDecimal()
+        {
+            var so = new SimpleObject();
+
+            engine.AddHostObject("simple", so);
+
+            engine.Evaluate("simple.Price=1.2");
+
+            Assert.AreEqual(so.Price, (decimal)1.2);
+
+        }
+
+        public class ContainsListObject
+        {
+            public List<SimpleObject> List { get; set; }
+            public List<decimal> DecimalList { get; set; }
+            public List<decimal?> NullableDecimalList { get; set; }
+            public List<string> StringList { get; set; }
+        }
+
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_SetHostList()
+        {
+            var obj = new ContainsListObject() { List = new List<SimpleObject>() };
+            for ( var i =0; i < 10; i ++)
+            {
+                obj.List.Add(new SimpleObject() { Price = i + 1 });
+            }
+            engine.AddHostObject("clo", obj);
+            engine.Evaluate("clo.constructor.prototype.length=" + obj.List.Count);
+            var len1 = (int)engine.Evaluate("x=clo.List.length");
+            engine.Evaluate("var arr= Array.prototype.filter.call( clo.List, function (a){ return a.Price>4;})");
+            var arr =(dynamic) engine.Evaluate("arr= arr");
+            var len = arr.length;
+            engine.Evaluate("clo.List = arr;");
+            Assert.AreEqual(obj.List.Count, 6);
+
+
+
+
+        }
+
+        [TestMethod, TestCategory("V8ScriptEngine")]
+        public void V8ScriptEngine_SetHostListOfValueTypes()
+        {
+            var clo = new ContainsListObject() { List = new List<SimpleObject>() };
+            engine.AddHostObject("clo", clo);
+            engine.Evaluate("clo.DecimalList=[1.2,3.4]");
+            Assert.AreEqual(clo.DecimalList.First(), (decimal)1.2);
+            engine.Evaluate("clo.DecimalList=[1,3,5.7,8]");
+            Assert.AreEqual(clo.DecimalList[3], (decimal)8);
+            engine.Evaluate("clo.NullableDecimalList=[1,3,null,,8]");
+            Assert.AreEqual(clo.NullableDecimalList[3], null);
+
+
+            
+
+            engine.Evaluate("clo.StringList=['asd',,'ghi']");
+            Assert.AreEqual(clo.StringList[2], "ghi");
+
+            engine.Evaluate("clo.StringList=['asd','def','ghi']");
+            Assert.AreEqual(clo.StringList[2], "ghi");
+
+
+        }
+
+
+
 
 
         [TestMethod, TestCategory("V8ScriptEngine")]

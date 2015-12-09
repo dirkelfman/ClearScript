@@ -60,6 +60,7 @@
 //       
 
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -67,6 +68,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.ClearScript.V8;
 
 namespace Microsoft.ClearScript.Util
 {
@@ -175,6 +177,11 @@ namespace Microsoft.ClearScript.Util
             return type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Nullable<>));
         }
 
+        public static bool IsGenericList(this Type type)
+        {
+            return type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(List<>));
+        }
+
         public static bool IsNullableNumeric(this Type type)
         {
             return nullableNumericTypes.Contains(type);
@@ -208,9 +215,17 @@ namespace Microsoft.ClearScript.Util
                 return true;
             }
 
+            
             if (!type.IsValueType)
             {
-                return type.IsAssignableFrom(valueType);
+                if (  type.IsAssignableFrom(valueType))
+                {
+                    return true;
+                }
+                if (type.IsListAssignableFrom(ref value))
+                {
+                    return true;
+                }
             }
 
             if (!valueType.IsValueType)
@@ -228,6 +243,7 @@ namespace Microsoft.ClearScript.Util
                 return false;
             }
 
+
             TypeCode[] typeCodes;
             if (implicitNumericConversions.TryGetValue(Type.GetTypeCode(valueType), out typeCodes))
             {
@@ -239,7 +255,73 @@ namespace Microsoft.ClearScript.Util
                 }
             }
 
+           
+            if (type.IsNumeric() && valueType.IsNumeric())
+            {
+                try
+                {
+                    value = Convert.ChangeType(value, type);
+                    return true;
+                }
+                catch { }
+            }
+
             return false;
+        }
+
+        public static bool IsListAssignableFrom(this Type type, ref object value)
+        {
+            if (!type.IsGenericList())
+            {
+                return false;
+            }
+            IList newList = null;
+            var itemType = type.GetGenericArguments().First();
+            var v8Si = value as V8ScriptItem;
+            if (v8Si == null) return false;
+            var len = v8Si.GetProperty("length") as int?;
+            if (!len.HasValue)
+            {
+                return false;
+            }
+            if ( len == 0)
+            {
+                value = Activator.CreateInstance(type);
+                return true;
+            }
+            //large arrays can be expensive to convert 
+            if (len.Value >= 250)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < len; i++)
+            {
+                object item;
+                try
+                {
+                    item = v8Si.GetProperty(i);
+                }
+                catch
+                {
+                    return false;
+                }
+                item = object.Equals( item , Undefined.Value) ? null : item;
+                if (itemType.IsAssignableFrom(ref item))
+                {
+                    if (newList == null)
+                    {
+                        newList = (IList)Activator.CreateInstance(type, new object[] { len });
+                    }
+                    newList.Add(item);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            value = newList;
+            return true;
         }
 
         public static bool HasExtensionMethods(this Type type)
