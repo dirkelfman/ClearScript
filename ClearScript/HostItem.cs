@@ -1621,10 +1621,17 @@ namespace Microsoft.ClearScript
                 return value;
             }
 
-            //todo make this config or a settable  func..
-            if (args != null && args.Length == 1 && args[0] is ScriptItem)
+           
+            if (args != null && args.Length == 1 && args[0] is IV8ScriptItem)
             {
-               
+                var  v8ScriptItem = (IV8ScriptItem)args[0];
+              
+                if (property.PropertyType.TryMapScriptObject(v8ScriptItem, ref value))
+                {
+                    property.SetValue(target.InvokeTarget, value, invokeFlags, Type.DefaultBinder, args.Take(args.Length - 1).ToArray(), culture);
+                    return value;
+                }
+
                 try
                 {
                     var jobj = Newtonsoft.Json.Linq.JToken.FromObject(args[0]);

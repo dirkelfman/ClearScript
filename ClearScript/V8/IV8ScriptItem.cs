@@ -24,8 +24,84 @@ namespace Microsoft.ClearScript.V8
         /// </summary>
         /// <returns>if array</returns>
         JsTypes GetJsType();
-        
-      
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        object GetProperty(string name);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+       void SetProperty(string name, object value);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        bool DeleteProperty(string name);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        string[] GetPropertyNames();
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        object GetProperty(int index);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="value"></param>
+        void SetProperty(int index, object value);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        bool DeleteProperty(int index);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        int[] GetPropertyIndices();
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="asConstructor"></param>
+        /// <returns></returns>
+         object Invoke(object[] args, bool asConstructor);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+       object InvokeMethod(string name, object[] args);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<object> GetArrayMembers();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<KeyValuePair<string, object>> GetPropertyMap();
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        string ToJsonString(); 
     }
 
     /// <summary>

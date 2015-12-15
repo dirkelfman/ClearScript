@@ -60,6 +60,7 @@
 //       
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
 using Microsoft.ClearScript.Util;
@@ -266,6 +267,68 @@ namespace Microsoft.ClearScript.V8
         {
             VerifyNotDisposed();
             return engine.ScriptInvoke(() => target.GetPropertyIndices());
+        }
+        public IEnumerable< KeyValuePair<string,object>> GetPropertyMap()
+        {
+            VerifyNotDisposed();
+            return engine.ScriptInvoke(() => {
+                var names =  target.GetPropertyNames();
+                var ret = new KeyValuePair<string, object>[names.Length];
+                for ( int i =0;i<names.Length; i++)
+                {
+                    var entry = engine.MarshalToHost(target.GetProperty(names[i]), false);
+
+                    var resultScriptItem = entry as V8ScriptItem;
+                    if ((resultScriptItem != null) && (resultScriptItem.engine == engine))
+                    {
+                        resultScriptItem.holder = this;
+                    }
+                    
+                    ret[i] = new KeyValuePair<string, object>(names[i], entry);
+                }
+                return ret;
+            });
+        }
+        public string ToJsonString()
+        {
+            var stringify = (V8ScriptItem)engine.EngineState.GetOrAdd("stringify", key =>
+            {
+                try
+                {
+                    if (engine.CurrentScope != null)
+                    {
+                        engine.CurrentScope.Suspend();
+                    }
+                    return engine.Script.JSON.stringify;
+                }
+                finally
+                {
+                    if (engine.CurrentScope!=null)
+                    {
+                        engine.CurrentScope.Resume();
+                    }
+                }
+            });
+            return (string)stringify.Invoke(new object[] { this }, false);
+        }
+
+        public IEnumerable< object> GetArrayMembers()
+        {
+            VerifyNotDisposed();
+            return engine.ScriptInvoke(() => {
+                var len = target.GetProperty("length") ;
+                if ( len == null || !len.GetType().IsNumeric())
+                {
+                    return new object[0];
+                }
+                var length = Convert.ToInt32(len);
+                var ret = new object[length];
+                for (int i = 0; i < length; i++)
+                {
+                    ret[i] = engine.MarshalToHost(target.GetProperty(i), false);
+                }
+                return ret;
+            });
         }
 
         public override object Invoke(object[] args, bool asConstructor)

@@ -216,16 +216,9 @@ namespace Microsoft.ClearScript.Util
             }
 
             
-            if (!type.IsValueType)
+            if (!type.IsValueType && type.IsAssignableFrom(valueType))
             {
-                if (  type.IsAssignableFrom(valueType))
-                {
-                    return true;
-                }
-                if (type.IsListAssignableFrom(ref value))
-                {
-                    return true;
-                }
+                return true;
             }
 
             if (!valueType.IsValueType)
@@ -269,60 +262,110 @@ namespace Microsoft.ClearScript.Util
             return false;
         }
 
-        public static bool IsListAssignableFrom(this Type type, ref object value)
+        static readonly ConcurrentDictionary<Type, Func<IV8ScriptItem, Type, object>> v8ScriptObjectMapperDictionary = new ConcurrentDictionary<Type, Func<IV8ScriptItem, Type, object>>();
+        static readonly List<Tuple<Func<Type, bool>, Func<IV8ScriptItem, Type, object>>> v8ScriptObjectMapperList = new List<Tuple<Func<Type, bool>, Func<IV8ScriptItem, Type, object>>>(256);
+        static object lockobject = new object(); 
+
+
+        public static void AddScriptItemMapper( this Type type , Func<IV8ScriptItem,Type, object> map)
         {
-            if (!type.IsGenericList())
+            v8ScriptObjectMapperDictionary[type] = map;
+        }
+        public static void AddScriptItemMapper(Func<Type, bool> canMap, Func<IV8ScriptItem, Type, object> mapper)
+        {
+            lock(lockobject)
             {
-                return false;
+                v8ScriptObjectMapperList.Add(new Tuple<Func<Type, bool>, Func<IV8ScriptItem, Type, object>>(canMap, mapper) );
             }
-            IList newList = null;
-            var itemType = type.GetGenericArguments().First();
-            var v8Si = value as V8ScriptItem;
-            if (v8Si == null) return false;
-            var len = v8Si.GetProperty("length") as int?;
-            if (!len.HasValue)
+            
+          
+        }
+        public static Func<IV8ScriptItem, Type, object> GetScriptItemMapper(this Type type)
+        {
+            Func<IV8ScriptItem, Type, object> fn;
+            if (v8ScriptObjectMapperDictionary.TryGetValue(type, out fn))
             {
-                return false;
+                return fn;
             }
-            if ( len == 0)
+            //using for loop so that list can be modified to something < its inital internal size while enumerating.
+            for ( int i =0; i < v8ScriptObjectMapperList.Count; i++)
             {
-                value = Activator.CreateInstance(type);
+                var mapper = v8ScriptObjectMapperList[i];
+                if (mapper.Item1(type))
+                {
+                    return mapper.Item2;
+                }
+            }
+            
+            return null;
+        }
+        public static bool TryMapScriptObject (this Type managedType, IV8ScriptItem v8Item, ref object managedObject)
+        {
+            Func<IV8ScriptItem, Type, object> fn = GetScriptItemMapper(managedType);
+           if ( fn != null)
+            {
+                managedObject = fn(v8Item, managedType);
                 return true;
             }
-            //large arrays can be expensive to convert 
-            if (len.Value >= 250)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < len; i++)
-            {
-                object item;
-                try
-                {
-                    item = v8Si.GetProperty(i);
-                }
-                catch
-                {
-                    return false;
-                }
-                item = object.Equals( item , Undefined.Value) ? null : item;
-                if (itemType.IsAssignableFrom(ref item))
-                {
-                    if (newList == null)
-                    {
-                        newList = (IList)Activator.CreateInstance(type, new object[] { len });
-                    }
-                    newList.Add(item);
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            value = newList;
-            return true;
+            return false;
         }
+
+
+
+        //public static bool IsListAssignableFrom(this Type type, ref object value)
+        //{
+        //    if (!type.IsGenericList())
+        //    {
+        //        return false;
+        //    }
+        //    IList newList = null;
+        //    var itemType = type.GetGenericArguments().First();
+        //    var v8Si = value as V8ScriptItem;
+        //    if (v8Si == null) return false;
+        //    var len = v8Si.GetProperty("length") as int?;
+        //    if (!len.HasValue)
+        //    {
+        //        return false;
+        //    }
+        //    if ( len == 0)
+        //    {
+        //        value = Activator.CreateInstance(type);
+        //        return true;
+        //    }
+        //    //large arrays can be expensive to convert 
+        //    if (len.Value >= 250)
+        //    {
+        //        return false;
+        //    }
+
+        //    for (var i = 0; i < len; i++)
+        //    {
+        //        object item;
+        //        try
+        //        {
+        //            item = v8Si.GetProperty(i);
+        //        }
+        //        catch
+        //        {
+        //            return false;
+        //        }
+        //        item = object.Equals( item , Undefined.Value) ? null : item;
+        //        if (itemType.IsAssignableFrom(ref item))
+        //        {
+        //            if (newList == null)
+        //            {
+        //                newList = (IList)Activator.CreateInstance(type, new object[] { len });
+        //            }
+        //            newList.Add(item);
+        //        }
+        //        else
+        //        {
+        //            return false;
+        //        }
+        //    }
+        //    value = newList;
+        //    return true;
+        //}
 
         public static bool HasExtensionMethods(this Type type)
         {
@@ -781,5 +824,51 @@ namespace Microsoft.ClearScript.Util
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public static class ScriptItemMappingConfig
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="map"></param>
+        public static void AddScriptItemMapper( Type type, Func<IV8ScriptItem, Type, object> map)
+        {
+            TypeHelpers.AddScriptItemMapper(type, map);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="canMap"></param>
+        /// <param name="mapper"></param>
+        public static void AddScriptItemMapper(Func<Type, bool> canMap, Func<IV8ScriptItem,Type, object> mapper)
+        {
+            TypeHelpers.AddScriptItemMapper(canMap, mapper);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static Func<IV8ScriptItem, Type,object> GetScriptItemMapper( Type type)
+        {
+            return TypeHelpers.GetScriptItemMapper(type);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="managedType"></param>
+        /// <param name="v8Item"></param>
+        /// <param name="managedObject"></param>
+        /// <returns></returns>
+        public static bool TryMapScriptObject( Type managedType, IV8ScriptItem v8Item, ref object managedObject)
+        {
+            return TypeHelpers.TryMapScriptObject(managedType, v8Item, ref managedObject);
+        }
     }
 }
